@@ -43,6 +43,26 @@
             <img src="knapsack.gif" alt="Rhetor animation" style="max-width:100%;height:auto;display:inline-block;" loading="lazy" decoding="async">
           </div>
         </div>
+        <div class="rhetor-install" aria-labelledby="rhetor-install-heading">
+          <h3 id="rhetor-install-heading">Rhetor</h3>
+          Rethor is an Integrated Modelling Environment that leverages <code>pyopl</code>, a Python library for parsing and solving OPL-like mathematical programming models using Gurobi or Scipy (Highs). <code>pyopl</code> supports a subset of Optimisation Programming Language (OPL) syntax for linear and mixed-integer programming.
+          <h3 id="rhetor-install-heading">Installation & start</h3>
+          <p>Rhetor is currently available for macOS only.</p>
+          <p>Install:</p>
+          <pre><code>pip install rhetor</code></pre>
+          <p>Start Rhetor:</p>
+          <pre><code>python -m pyopl</code></pre>
+
+          <p>To enable GenAI features, set at least one of the following environment variables before starting Rhetor:</p>
+          <ul>
+            <li><code>OPENAI_API_KEY</code> — for OpenAI models</li>
+            <li><code>GEMINI_API_KEY</code> — for Google Gemini</li>
+          </ul>
+          or install and run <code>ollama</code> locally.</li>
+
+          <p>Example (macOS / bash):</p>
+          <pre><code>export OPENAI_API_KEY="sk-..."</code></pre>
+        </div>
       </section>
 
       <section id="about" class="about-us" aria-labelledby="about-heading">
