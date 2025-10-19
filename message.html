@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Splashscreen</title>
+
+  <link rel="stylesheet" href="f-ren.css">
+  </head>
+  <body>
+    <main class="site" role="main" aria-live="polite">
+      <div class="center-stage" aria-hidden="false">
+        <div class="rotating-wrap" id="rotator" aria-atomic="true">
+          <div id="slide1" class="slide visible">It is often said that if something can be described, then it can be automated.</div>
+          <div id="slide2" class="slide">The problem is that describing something is often a very complex matter.</div>
+          <div id="slide3" class="slide">
+            <img src="logo.png" alt="Site logo" class="slide-logo" />
+            <div class="spacer" aria-hidden="true"></div>
+            <button id="enterBtn" type="button" class="enter-btn" aria-label="Enter site">Think Smart</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    
+
+    <script>
+      (function(){
+        const messages = [
+          "It is often said that if something can be described, then it can be automated.",
+          "The problem is that describing something is often a very complex matter.",
+          "__button__"
+        ];
+
+        const displayTime = 5000; // time each message rests at center (ms)
+        const transitionDelay = 200; // small overlap delay before next enters (ms)
+        const slideEls = [document.getElementById('slide1'), document.getElementById('slide2'), document.getElementById('slide3')];
+        let current = 0;
+        let busy = false;
+
+        // initialize texts (ensure rotated order if needed)
+  slideEls[0].textContent = messages[0];
+  slideEls[1].textContent = messages[1];
+  // slide3 contains button; we keep its innerHTML (button element)
+
+        function startCycle(){
+          setTimeout(next, displayTime);
+        }
+
+
+        function next(){
+          if (busy) return;
+          busy = true;
+          const outEl = slideEls[current];
+
+          // prepare incoming element text (next message index)
+          const nextIndex = (current + 1) % messages.length;
+          const inEl = slideEls[nextIndex];
+          if (messages[nextIndex] === '__button__') {
+            // leave the button element in place (do not overwrite)
+          } else {
+            inEl.textContent = messages[nextIndex];
+          }
+
+          // trigger exit on current
+          outEl.classList.remove('enter');
+          outEl.classList.add('exit');
+          outEl.classList.remove('visible');
+
+          // schedule incoming a little after exit starts to get overlap
+          setTimeout(() => {
+            inEl.classList.remove('exit');
+            inEl.classList.add('enter');
+            inEl.classList.add('visible');
+          }, transitionDelay);
+
+          // listen for animationend to finalize swap
+          const cleanup = (e) => {
+            // remove classes from previous
+            outEl.classList.remove('exit');
+            outEl.style.opacity = '0';
+            inEl.classList.remove('enter');
+            inEl.style.opacity = '';
+
+            // swap index
+            current = nextIndex;
+            busy = false;
+            outEl.removeEventListener('animationend', cleanup);
+            // schedule next cycle
+            setTimeout(next, displayTime);
+          };
+
+          // in case animations are disabled or do not fire, fallback timeout
+          const fallback = setTimeout(() => {
+            if (busy) {
+              cleanup();
+              busy = false;
+            }
+          }, 1500);
+
+          outEl.addEventListener('animationend', () => {
+            clearTimeout(fallback);
+            cleanup();
+          }, { once: true });
+        }
+
+        // start after a short delay so the initial sentence is visible briefly
+        setTimeout(startCycle, 800);
+
+        // wire up the enter button to open index.html
+        const enterBtn = document.getElementById('enterBtn');
+        if (enterBtn) {
+          enterBtn.addEventListener('click', () => {
+            window.location.href = 'index.html';
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>
