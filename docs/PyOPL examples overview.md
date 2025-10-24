@@ -1,6 +1,6 @@
 # Overview of OPL Example Models
 
-This document provides a summary of the OPL (Optimization Programming Language) example models included in the `opl_models` folder. Each example demonstrates a classic optimization problem, with a brief description and the main modeling features.
+This document provides a summary of the OPL (Optimization Programming Language) example models included in the [opl_models](https://github.com/gwr3n/rhetor/tree/main/opl_models) folder. Each example demonstrates a classic optimization problem, with a brief description and the main modeling features.
 
 ---
 
