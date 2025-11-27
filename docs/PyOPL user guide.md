@@ -23,12 +23,14 @@
   - [Multi-indexed and Tuple-indexed Constraints](#multi-indexed-and-tuple-indexed-constraints)
   - [`forall` Constraints](#forall-constraints)
   - [`sum` Expressions](#sum-expressions)
+  - [If/Else Constraints](#ifelse-constraints)
 - [Expressions](#expressions)
 - [Comments](#comments)
 - [Example Models](#example-models)
 - [Error Handling](#error-handling)
 - [Solving a Model](#solving-a-model)
 - [Limitations](#limitations)
+- [GenAI Assistants (experimental)](#genai-assistants-experimental)
 - [PyOPL IDE](#pyopl-ide)
   - [Launching the IDE](#launching-the-ide)
 
@@ -69,7 +71,7 @@ Decision variables are the unknowns to be determined by the optimizer. They can 
     ```
     Declares `flow` as a 2D array, `assign` as a 1D array, and shows use of named ranges/sets and multi-indexing.
 
-- New: Index expressions in variable/parameter indexing can be integer expressions (e.g., t-1, (i+j), -k) and tuple field access, provided the expression is integer-valued by type inference.
+- Index expressions in variable/parameter indexing can be integer expressions (e.g., t-1, (i+j), -k) and tuple field access, provided the expression is integer-valued by type inference.
 
 - New: Tuple arrays are supported as first-class data (see “Tuple arrays” below).
 
@@ -81,6 +83,7 @@ range MyRange = 10..(N-1);
 ```
 Important:
 - Named ranges must be declared in the model with explicit bounds (inline). Model-time “external ranges” declared as `range T;` are parsed but not supported by the code generators at loop sites. Always provide bounds in the model (e.g., `range T = 1..N;`). Data files can still provide scalar parameters N used in range expressions.
+- Bounds must be non-negative literals when they are literal numbers. Negative literal bounds (e.g., `-1..10`) are rejected; use expressions like `(1 - k)..N` if you need a computed negative.
 
 ### Parameters (`param`)
 Parameters are known values provided to the model. They can be scalar or indexed, and can be declared as external (value from `.dat`) either implicitly or explicitly.
@@ -114,7 +117,7 @@ set Cities = {"A", "B", "C"}; // Set assignment with explicit values
 ```
 Sets can be used as indices for variables and parameters. When declared without assignment, the set values must be provided in a `.dat` file. When assigned in the model, the set is immediately available.
 
-- New: Typed scalar sets (e.g., strings) are supported:
+- Typed scalar sets (e.g., strings) are supported:
 ```opl
 {string} Cities = { "A", "B", "C" };
 {string} Warehouses;         // external typed set
@@ -126,6 +129,7 @@ Typed scalar sets can be used as indices for variables/parameters; parameters in
 
 Note:
 - Code generation emits a helper index map `<SetName>_index` for typed scalar sets to support list-backed parameters internally. This is not part of the OPL syntax, but may appear in generated code.
+- In addition to `{string}`, typed scalar sets `{int}`, `{float}`, and `{boolean}` are also supported.
 
 ### Tuple Types and Sets of Tuples
 
@@ -182,6 +186,8 @@ Additional supported forms:
 ```opl
 Items = 1..5;            // creates a range_data entry (used for validation/data, not for loops)
 ```
+Note: range bounds in .dat must be non-negative integers.
+
 - Key-value arrays supporting string or tuple keys, mapping to scalar or array values:
 ```opl
 v = [
@@ -270,6 +276,14 @@ The objective defines the function to optimize. Only one objective is allowed.
 - Note: Backends expect linear objectives. To use boolean/comparison logic in an objective, linearize via sums of reified comparisons or explicit binaries. For example:
   - Preferred: `minimize sum(i in I) (x[i] >= 1);` (compiled via auxiliary binaries)
   - Avoid raw comparison as the entire objective (e.g., `minimize (x > 0);`) with Gurobi; instead reify or sum indicators.
+
+- min/max aggregates (convex forms)                             
+  - In objectives: supported as convex forms only:
+    - `minimize max(i in I) expr(i)` and `maximize min(i in I) expr(i)` are rewritten with an auxiliary and epigraph/hypograph constraints.
+  - In constraints: supported convex placements:
+    - `max(i in I) expr(i) <= rhs`, `lhs >= max(i in I) expr(i)`,
+      `min(i in I) expr(i) >= rhs`, `lhs <= min(i in I) expr(i)`.
+  - Other placements (equality with max/min, nested non-convex uses) are not supported.
 
 ---
 
@@ -428,6 +442,22 @@ minimize sum (o in nested) (o.value * y[o]);
 ```
 - Tuple field access is supported in the sum/forall body, objectives, and constraints.
 
+### If/Else Constraints
+You can guard groups of constraints with a ground (non-decision) condition:
+```opl
+subject to {
+  if (N >= 5) {
+    x <= 10;
+  } else {
+    x <= 7;
+  }
+  // Inside forall, the condition can reference the iterators:
+  forall(t in 1..T)
+    if (t >= 2) { x[t] >= x[t-1]; }
+}
+```
+Conditions must not reference decision variables. Inside `forall`, iterator variables are allowed.
+
 ---
 
 ## Expressions
@@ -436,7 +466,7 @@ Expressions can include:
 - **Numbers:** `10`, `3.14`, `1e-3`
 - **Variable Names:** `x`, `my_param`
 - **Indexed Variables:** `flow[i][j]`, `weight[k]`, `x[i in Items, j in Cities]`, `x[a]` where `a` is a tuple, `y[o]` where `o` is a nested tuple
-- **Operators:** `+`, `-`, `*`, `/`, `==`, `!=`, `<=`, `>=`, `<`, `>`
+- **Operators:** `+`, `-`, `*`, `/`, `%`, `==`, `!=`, `<=`, `>=`, `<`, `>`
 - **Unary Minus:** `-x`
 - **Parentheses:** `(x + y)`
 - **Boolean values:** `true`, `false` (converted to `1` or `0` in arithmetic)
@@ -444,6 +474,9 @@ Expressions can include:
     - `a.cost` (where `a` is a tuple of type `Arc`)
     - `o.pair.i` (nested tuple field access)
     - Supported in sum/forall, objectives, and constraints.
+- **Functions:**
+  - `sqrt(x)` (float result)
+  - `minl(a, b, c, ...)`, `maxl(a, b, c, ...)` over a list of numeric arguments (ground in parameters/computed expressions).
 
 Additional notes:
 - Index expressions can be arithmetic or field accesses as long as they are integer-typed:
@@ -544,6 +577,8 @@ subject to {
 
 PyOPL provides robust semantic error messages for undeclared symbols, type mismatches, illegal operations, and more. Errors include line numbers when available, and diagnostics are shown in both the API and IDE output.
 
+- .dat file diagnostics include precise line numbers for unexpected EOF and token-context errors.  
+
 ---
 
 ## Solving a Model
@@ -592,13 +627,66 @@ Solver specifics:
 
 ---
 
+## GenAI Assistants
+
+PyOPL includes optional generative assistants that can scaffold OPL models and `.dat` files from natural‑language descriptions and iteratively refine drafts. These helpers live under `pyopl/genai/` and use retrieval over bundled examples and grammar to keep outputs close to valid PyOPL/OPL.
+
+What they do:
+- Turn a problem description into a first model/data draft.
+- Refine or repair a draft based on errors or feedback.
+- Ground generation with the bundled example models (`pyopl/opl_models/`) and grammar artifacts (`pyopl/grammars/`).
+
+Available strategies (choose based on preference):
+- pyopl_standard: Single‑pass baseline generation.
+- pyopl_chain_of_thought: Multi‑step rationale before emitting code.
+- pyopl_tree_of_thoughts: Explore multiple alternatives and pick the best draft.
+- pyopl_reflexion: Generate → critique → revise in short loops.
+- pyopl_cafa: Single‑shot generation with optional few‑shot retrieval; compiles and writes files, with optional alignment assessment and usage/cost tracking.
+- pyopl_chain_of_experts: Specialist prompts (modeling, data, validation) with aggregation.
+- pyopl_generative: Iterative model/data synthesis with few‑shot retrieval, compile‑and‑revise loops, optional alignment check.
+
+All strategies feature OpenAI/Gemini/Ollama support.
+
+Typical usage (Python):
+```python
+from pyopl.pyopl_generative import generative_solve
+
+prompt = """
+Formulate a simple binary knapsack model with capacity 10 and 4 items.
+Return both model (.mod) and data (.dat).
+"""
+
+prompt = (
+        "A small inventory routing problem involves a company that must deliver a single product "
+        "from a central warehouse to several retail stores over a planning horizon. "
+        "Each store has a limited storage capacity and a known demand for each period. "
+        "The company must decide how much inventory to deliver to each store and when, "
+        "while minimizing the total cost of transportation and inventory holding, "
+        "and ensuring that no store runs out of stock or exceeds its storage capacity."
+    )
+model_file = "/content/gen_pyopl_model.mod"
+data_file = "/content/gen_pyopl_data.dat"
+
+assessment = generative_solve(prompt, model_file, data_file, "gpt-5", llm_provider="openai")
+print("Assessment of alignment:", assessment)
+```
+
+Notes and tips:
+- These assistants generate text; compile and solve using the usual API (`solve(...)`) and fix any semantic errors the compiler reports.
+- Retrieval grounding uses:
+  - Example models: `pyopl/opl_models/*/*.mod`
+  - Grammar files: `pyopl/grammars/PyOPL_GBNF`, `pyopl/grammars/JSON_SCHEMA_AST.json`
+- LLM provider setup is external to PyOPL; configure your preferred client/credentials as required by your environment before calling these helpers.
+
+---
+
 ## PyOPL IDE
 
 PyOPL includes a graphical IDE for editing, running, and debugging OPL models and data files. The IDE features:
 
 - Syntax highlighting for OPL models and data files
 - Side-by-side model and data editors
-- Output panel for solver results, errors, and messages
+- Output panel for solver results, errors, messages, and detailed solver statistics (the 'stats' field)
 - File tree for easy switching between model and data
 - Solver selection (Gurobi or SciPy/HiGHS) — choose your preferred solver from the menu
 - Font size adjustment and modern UI
