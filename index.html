@@ -1,9 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>Rhetor</title>
+  <title>Rhetor — GenAI-assisted Integrated MILP Modelling Environment</title>
+  
+  <!-- Favicons -->
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+  <!-- Basic meta tags -->
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta name="description" content="Rhetor is an Integrated Modelling Environment for modelling and solving mixed-integer linear programming problems, with optional GenAI-assisted modelling features." />
+  <meta name="keywords" content="Rhetor, Integrated Modelling Environment, Mixed-Integer Linear Programming, MILP, OPL, GenAI, AI-assisted Modelling, Mathematical Optimization, Gurobi, PyOPL" />
+  <meta name="author" content="Roberto Rossi" />
+  <meta name="robots" content="index,follow" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="color-scheme" content="light" />
+  <link rel="canonical" href="https://gwr3n.github.io/rhetor/" />
+
+  <!-- Open graph meta tags -->
+  <meta property="og:title" content="Rhetor — Integrated Modelling Environment" />
+  <meta property="og:description" content="Rhetor is an Integrated Modelling Environment for modelling and solving mixed-integer linear programming problems, with optional GenAI-assisted modelling features." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://gwr3n.github.io/rhetor/" />
+  <meta property="og:site_name" content="Rhetor" />
+  <meta property="og:image" content="https://gwr3n.github.io/rhetor/logo.png" />
+  <meta property="og:image:alt" content="Rhetor logo" />
+  <meta property="og:locale" content="en_GB" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Optional: Twitter summary card (uses the same image/description) -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Rhetor — Integrated Modelling Environment" />
+  <meta name="twitter:description" content="An Integrated Modelling Environment for mixed-integer linear programming, with optional GenAI-assisted modelling features." />
+  <meta name="twitter:image" content="https://gwr3n.github.io/rhetor/logo.png" />
+
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
@@ -32,6 +68,26 @@
     background-color: #000;
   }
   </style>
+
+  <!-- JSON-LD: SoftwareApplication (keep your Person JSON-LD too) -->
+  <script type="application/ld+json" data-cookie-consent="strictly-necessary">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Rhetor",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "macOS, Windows, Linux",
+    "description": "Rhetor is an Integrated Modelling Environment for modelling and solving mixed-integer linear programming problems, supporting a subset of OPL syntax and integrating GenAI-assisted modelling features.",
+    "url": "https://gwr3n.github.io/rhetor/",
+    "downloadUrl": "https://pypi.org/project/rhetor/",
+    "softwareVersion": "See PyPI",
+    "author": {
+      "@type": "Person",
+      "name": "Roberto Rossi",
+      "url": "https://gwr3n.github.io/"
+    }
+  }
+  </script>
 </head>
 <body>
     <div id="myCarousel" class="carousel slide" data-ride="carousel" data-interval="false">
@@ -82,7 +138,7 @@
         <table class="table">
             <tr>
                 <td> 
-                    <img src="logo.png" alt="Rhetor Logo" class="img-responsive pull-left" style="width: 100px; padding: 0px 10px 10px 0px"> Rethor is an Integrated Modelling Environment for modelling and solving mixed-integer linear programming problems. Rhetor supports a subset of the Optimisation Programming Language (OPL) syntax and it is built on <code>pyopl</code>, a Python library for parsing and solving OPL-like mathematical programming models using Gurobi or Scipy (Highs). Rhetor integrates GenAI features to support and automate the modelling process.<br><br>
+                    <img src="logo.png" alt="Rhetor Logo" class="img-responsive pull-left" style="width: 100px; padding: 0px 10px 10px 0px"> Rhetor is an Integrated Modelling Environment for modelling and solving mixed-integer linear programming problems. Rhetor supports a subset of the Optimisation Programming Language (OPL) syntax and it is built on <code>pyopl</code>, a Python library for parsing and solving OPL-like mathematical programming models using Gurobi or Scipy (Highs). Rhetor integrates GenAI features to support and automate the modelling process.<br><br>
                     <img alt="PyPI - Downloads" src="https://img.shields.io/pypi/dm/rhetor">
                     <img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/rhetor">
                     <img alt="PyPI - Version" src="https://img.shields.io/pypi/v/rhetor">
@@ -108,7 +164,7 @@
         <p>Example (macOS / bash):</p>
         <pre><code>export OPENAI_API_KEY="sk-..."</code></pre>
         Alternatively, you can use <code>rhetor</code> as illustrated in the following  
-        <a href="https://github.com/gwr3n/rhetor/blob/main/ipynb/Using_PyOPL_and_Rethor_in_Google_Colab.ipynb">Jupyter notebook</a>.
+        <a href="https://github.com/gwr3n/rhetor/blob/main/ipynb/Using_PyOPL_and_Rhetor_in_Google_Colab.ipynb">Jupyter notebook</a>.
         </td></tr>
         <tr><td>
         </td></tr>
