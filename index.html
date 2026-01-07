@@ -116,12 +116,27 @@
           website_name: "Rhetor — GenAI-assisted Integrated MILP Modelling Environment",
 
           callbacks: {
-            notice_banner_accept: function (level) { updateGoogleConsentFromLevels(level); },
-            notice_banner_reject: function (level) { updateGoogleConsentFromLevels(level); },
-            preferences_center_accept: function (level) { updateGoogleConsentFromLevels(level); },
-            preferences_center_reject: function (level) { updateGoogleConsentFromLevels(level); },
-            preferences_center_save: function (level) { updateGoogleConsentFromLevels(level); }
-          },
+  notice_banner_accept: function (...args) {
+    console.log('[consent] notice_banner_accept fired args=', args);
+    try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
+  },
+  notice_banner_reject: function (...args) {
+    console.log('[consent] notice_banner_reject fired args=', args);
+    try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
+  },
+  preferences_center_accept: function (...args) {
+    console.log('[consent] preferences_center_accept fired args=', args);
+    try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
+  },
+  preferences_center_reject: function (...args) {
+    console.log('[consent] preferences_center_reject fired args=', args);
+    try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
+  },
+  preferences_center_save: function (...args) {
+    console.log('[consent] preferences_center_save fired args=', args);
+    try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
+  }
+},
           callbacks_force: true
         });
       };
@@ -135,6 +150,20 @@
     onerror="console.error('[consent] Failed to load TermsFeed cookie-consent.js (blocked or network error)')">
   </script>
   <!-- End Cookie Consent by TermsFeed -->
+
+  <script>
+    window.addEventListener('beforeunload', () => {
+      console.log('[consent] beforeunload (page is reloading/navigation)');
+    });
+
+    // TEMP debug helpers (remove once working)
+  window.__grantAnalytics = function () {
+    updateGoogleConsentFromLevels(['tracking']);
+  };
+  window.__grantAdsAndAnalytics = function () {
+    updateGoogleConsentFromLevels(['tracking', 'targeting']);
+  };
+  </script>
 
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
