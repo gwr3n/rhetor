@@ -24,30 +24,26 @@
     gtag('js', new Date());
     gtag('config', 'G-RRWWRBN3H6', { send_page_view: false });
 
+    // Track granted levels incrementally (because TermsFeed may emit them one-by-one)
+    const __grantedLevels = new Set();
+    let __lastAnalyticsMode = 'denied';
+
     function normalizeLevels(input) {
-      // Handles string | string[] | {level: ...} | {consent_levels: ...} etc.
       if (Array.isArray(input)) return input.map(String);
-
       if (typeof input === 'string') return [input];
-
       if (input && typeof input === 'object') {
         if (Array.isArray(input.consent_levels)) return input.consent_levels.map(String);
         if (Array.isArray(input.levels)) return input.levels.map(String);
         if (Array.isArray(input.level)) return input.level.map(String);
         if (typeof input.level === 'string') return [input.level];
       }
-
       if (input == null) return [];
       return [String(input)];
     }
 
-    function updateGoogleConsentFromLevels(level) {
-      console.log('[consent] raw callback value:', level);
+    function applyGoogleConsentFromGrantedLevels() {
+      const levels = Array.from(__grantedLevels).map(l => String(l).toLowerCase());
 
-      const levels = normalizeLevels(level).map(l => String(l).toLowerCase());
-      console.log('[consent] normalized levels:', levels);
-
-      // Map common TermsFeed / CMP category names
       const analyticsGranted = levels.some(l =>
         ['tracking', 'analytics', 'statistics', 'performance'].includes(l)
       );
@@ -58,6 +54,7 @@
       const analyticsMode = analyticsGranted ? 'granted' : 'denied';
       const adsMode = adsGranted ? 'granted' : 'denied';
 
+      console.log('[consent] granted levels now:', levels);
       console.log('[consent] updating gtag consent:', { analyticsMode, adsMode });
 
       gtag('consent', 'update', {
@@ -67,23 +64,30 @@
         ad_personalization: adsMode
       });
 
-      // Ensure the hit is attributed to your property even if config timing is odd
-      if (analyticsMode === 'granted') {
+      // Fire page_view once when analytics transitions denied -> granted
+      if (__lastAnalyticsMode !== 'granted' && analyticsMode === 'granted') {
         gtag('event', 'page_view', { send_to: 'G-RRWWRBN3H6' });
       }
+      __lastAnalyticsMode = analyticsMode;
+    }
 
-      dataLayer.push({
-        event: 'consent_updated',
-        consent_levels: levels,
-        analytics_storage: analyticsMode,
-        ads_storage: adsMode
-      });
+    function grantConsentLevel(levelOrLevels) {
+      const levels = normalizeLevels(levelOrLevels).map(l => String(l).toLowerCase());
+      console.log('[consent] grantConsentLevel called with:', levels);
+
+      for (const l of levels) __grantedLevels.add(l);
+      applyGoogleConsentFromGrantedLevels();
+    }
+
+    function denyAllConsent() {
+      console.log('[consent] denyAllConsent');
+      __grantedLevels.clear();
+      applyGoogleConsentFromGrantedLevels();
     }
   </script>
 
   <!-- Cookie Consent by TermsFeed -->
   <script>
-    // Debug + robust init
     (function () {
       let initialized = false;
 
@@ -91,50 +95,16 @@
         return window.cookieconsent || window.CookieConsent || null;
       }
 
-      function readTermsFeedLevels(cc) {
-        // Try a few likely API shapes without assuming one exact version.
-        const getters = [
-          () => cc.getConsentLevels && cc.getConsentLevels(),
-          () => cc.getUserConsentLevel && cc.getUserConsentLevel(),
-          () => cc.getConsentLevel && cc.getConsentLevel(),
-          () => cc.getCurrentConsentLevels && cc.getCurrentConsentLevels(),
-          () => cc.consent_levels,
-          () => cc.consentLevels
-        ];
-
-        for (const fn of getters) {
-          try {
-            const val = fn();
-            if (val != null) return val;
-          } catch { /* ignore */ }
-        }
-        return null;
-      }
-
-      function syncConsentFromTermsFeed(source) {
-        const cc = getCC();
-        if (!cc) return;
-
-        const levels = readTermsFeedLevels(cc);
-        console.log(`[consent] syncConsentFromTermsFeed(${source}) levels=`, levels);
-
-        if (levels != null) updateGoogleConsentFromLevels(levels);
-      }
-
       window.initTermsFeedCookieConsent = function initTermsFeedCookieConsent() {
         if (initialized) return;
         const cc = getCC();
-
         if (!cc || typeof cc.run !== "function") {
-          console.error("[consent] TermsFeed library not available.", { cookieconsent: window.cookieconsent, CookieConsent: window.CookieConsent });
+          console.error("[consent] TermsFeed library not available.");
           return;
         }
 
         initialized = true;
         console.log("[consent] TermsFeed library loaded, initializing…");
-
-        // Expose for manual inspection in DevTools if needed
-        window.__termsfeedCC = cc;
 
         cc.run({
           notice_banner_type: "headline",
@@ -148,46 +118,38 @@
           website_name: "Rhetor — GenAI-assisted Integrated MILP Modelling Environment",
 
           callbacks: {
-            notice_banner_accept: function (...args) {
-              console.log('[consent] notice_banner_accept fired args=', args);
-              try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
+            // This will fire when a script with data-cookie-consent="X" gets unblocked
+            scripts_specific_loaded: function (level) {
+              console.log('[consent] scripts_specific_loaded:', level);
+              grantConsentLevel(level);
             },
-            notice_banner_reject: function (...args) {
-              console.log('[consent] notice_banner_reject fired args=', args);
-              try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
-            },
-            preferences_center_accept: function (...args) {
-              console.log('[consent] preferences_center_accept fired args=', args);
-              try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
-            },
-            preferences_center_reject: function (...args) {
-              console.log('[consent] preferences_center_reject fired args=', args);
-              try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
-            },
-            preferences_center_save: function (...args) {
-              console.log('[consent] preferences_center_save fired args=', args);
-              try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
-            }
+
+            // Optional fallback: if these ever fire, handle them too
+            notice_banner_reject: function () { denyAllConsent(); }
           },
+
           callbacks_force: true
         });
-
-        // Initial sync (in case the user already has a stored choice)
-        setTimeout(() => syncConsentFromTermsFeed('after_run'), 0);
-
-        // Fallback: banner buttons sometimes don’t trigger callbacks—sync after any click on them.
-        document.addEventListener('click', (e) => {
-          const el = e.target && e.target.closest && e.target.closest('button, a, input');
-          if (!el) return;
-
-          const text = (el.textContent || el.value || '').trim().toLowerCase();
-          if (text === 'i agree' || text === 'accept' || text === 'allow all' || text === 'reject' || text === 'decline') {
-            // Let TermsFeed store the decision first, then read it.
-            setTimeout(() => syncConsentFromTermsFeed(`click:${text}`), 50);
-          }
-        }, true);
       };
     })();
+  </script>
+
+  <script
+    src="https://www.termsfeed.com/public/cookie-consent/4.2.0/cookie-consent.js"
+    charset="UTF-8"
+    onload="initTermsFeedCookieConsent()"
+    onerror="console.error('[consent] Failed to load TermsFeed cookie-consent.js (blocked or network error)')">
+  </script>
+
+  <!-- IMPORTANT: Dummy scripts to make TermsFeed emit scripts_specific_loaded -->
+  <script type="text/plain" data-cookie-consent="tracking">
+    // TermsFeed will execute this after "tracking" consent is granted
+    console.log('[consent] dummy tracking script executed');
+  </script>
+
+  <script type="text/plain" data-cookie-consent="targeting">
+    // TermsFeed will execute this after "targeting" consent is granted
+    console.log('[consent] dummy targeting script executed');
   </script>
 
   <script
