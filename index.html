@@ -16,31 +16,49 @@
   </script>
   
   <!-- Google tag (gtag.js) -->
-  <script data-cookie-consent="tracking" async src="https://www.googletagmanager.com/gtag/js?id=G-RRWWRBN3H6"></script>
-  <script data-cookie-consent="tracking">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RRWWRBN3H6"></script>
+  <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){ dataLayer.push(arguments); }
 
     gtag('js', new Date());
-
-    // Prevent auto page_view until consent is granted
     gtag('config', 'G-RRWWRBN3H6', { send_page_view: false });
 
-    function normalizeLevels(level) {
-      if (Array.isArray(level)) return level.map(String);
-      if (typeof level === 'string') return [level];
-      if (level == null) return [];
-      return [String(level)];
+    function normalizeLevels(input) {
+      // Handles string | string[] | {level: ...} | {consent_levels: ...} etc.
+      if (Array.isArray(input)) return input.map(String);
+
+      if (typeof input === 'string') return [input];
+
+      if (input && typeof input === 'object') {
+        if (Array.isArray(input.consent_levels)) return input.consent_levels.map(String);
+        if (Array.isArray(input.levels)) return input.levels.map(String);
+        if (Array.isArray(input.level)) return input.level.map(String);
+        if (typeof input.level === 'string') return [input.level];
+      }
+
+      if (input == null) return [];
+      return [String(input)];
     }
 
     function updateGoogleConsentFromLevels(level) {
-      const levels = normalizeLevels(level);
+      console.log('[consent] raw callback value:', level);
 
-      // TermsFeed commonly uses:
-      // - 'tracking'  => analytics
-      // - 'targeting' => ads
-      const analyticsMode = levels.includes('tracking') ? 'granted' : 'denied';
-      const adsMode = levels.includes('targeting') ? 'granted' : 'denied';
+      const levels = normalizeLevels(level).map(l => String(l).toLowerCase());
+      console.log('[consent] normalized levels:', levels);
+
+      // Map common TermsFeed / CMP category names
+      const analyticsGranted = levels.some(l =>
+        ['tracking', 'analytics', 'statistics', 'performance'].includes(l)
+      );
+      const adsGranted = levels.some(l =>
+        ['targeting', 'marketing', 'advertising', 'ads'].includes(l)
+      );
+
+      const analyticsMode = analyticsGranted ? 'granted' : 'denied';
+      const adsMode = adsGranted ? 'granted' : 'denied';
+
+      console.log('[consent] updating gtag consent:', { analyticsMode, adsMode });
 
       gtag('consent', 'update', {
         analytics_storage: analyticsMode,
@@ -49,9 +67,9 @@
         ad_personalization: adsMode
       });
 
-      // Optional: only send page_view once analytics consent is granted
+      // Ensure the hit is attributed to your property even if config timing is odd
       if (analyticsMode === 'granted') {
-        gtag('event', 'page_view');
+        gtag('event', 'page_view', { send_to: 'G-RRWWRBN3H6' });
       }
 
       dataLayer.push({
