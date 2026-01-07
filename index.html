@@ -1,79 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Consent Mode: MUST be before loading gtag.js -->
   <script>
-    // 1. Define dataLayer and the gtag function.
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
+    function gtag(){ dataLayer.push(arguments); }
 
-    // 2. Set default consent to 'denied' as a placeholder
-    // This ensures no cookies are set until the user agrees.
     gtag('consent', 'default', {
-      'ad_storage': 'denied',
-      'ad_user_data': 'denied',
-      'ad_personalization': 'denied',
-      'analytics_storage': 'denied',
-      'wait_for_update': 500 // Optional: Gives the banner time to load
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied',
+      analytics_storage: 'denied',
+      wait_for_update: 2000
     });
-  
-    // 3. Set developer ID (optional, helps Google identify the CMP)
-    // FreePrivacyPolicy.com likely has their own ID, but this is standard boilerplate.
-    gtag('set', 'ads_data_redaction', true);
   </script>
   
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-RRWWRBN3H6"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
+    function gtag(){ dataLayer.push(arguments); }
+
     gtag('js', new Date());
 
-    gtag('config', 'G-RRWWRBN3H6');
+    // Prevent auto page_view until consent is granted
+    gtag('config', 'G-RRWWRBN3H6', { send_page_view: false });
+
+    function normalizeLevels(level) {
+      if (Array.isArray(level)) return level.map(String);
+      if (typeof level === 'string') return [level];
+      if (level == null) return [];
+      return [String(level)];
+    }
+
+    function updateGoogleConsentFromLevels(level) {
+      const levels = normalizeLevels(level);
+
+      // TermsFeed commonly uses:
+      // - 'tracking'  => analytics
+      // - 'targeting' => ads
+      const analyticsMode = levels.includes('tracking') ? 'granted' : 'denied';
+      const adsMode = levels.includes('targeting') ? 'granted' : 'denied';
+
+      gtag('consent', 'update', {
+        analytics_storage: analyticsMode,
+        ad_storage: adsMode,
+        ad_user_data: adsMode,
+        ad_personalization: adsMode
+      });
+
+      // Optional: only send page_view once analytics consent is granted
+      if (analyticsMode === 'granted') {
+        gtag('event', 'page_view');
+      }
+
+      dataLayer.push({
+        event: 'consent_updated',
+        consent_levels: levels,
+        analytics_storage: analyticsMode,
+        ads_storage: adsMode
+      });
+    }
   </script>
 
-  <!-- Cookie Consent by TermsFeed https://www.TermsFeed.com -->
-<script type="text/javascript" src="https://www.termsfeed.com/public/cookie-consent/4.2.0/cookie-consent.js" charset="UTF-8"></script>
-<script type="text/javascript" charset="UTF-8">
-  document.addEventListener('DOMContentLoaded', function () {
-    cookieconsent.run({
-      "notice_banner_type":"headline",
-      "consent_type":"express",
-      "palette":"light",
-      "language":"en",
-      "page_load_consent_levels":["strictly-necessary"],
-      "notice_banner_reject_button_hide":false,
-      "preferences_center_close_button_hide":false,
-      "page_refresh_confirmation_buttons":false,
-      "website_name":"Rhetor — GenAI-assisted Integrated MILP Modelling Environment",
-      
-      // THE BRIDGE: Connects the banner to Google
-      "callbacks": {
-        "scripts_specific_loaded": function(level) {
-          console.log("Consent Callback Fired! Level detected:", level); // Debug message
-          
-          // Check if the user accepted Tracking or Targeting
-          // (TermsFeed often uses 'tracking' for Analytics and 'targeting' for Ads)
-          var granted = (level.includes('tracking') || level.includes('targeting'));
-          
-          var mode = granted ? 'granted' : 'denied';
-          console.log("Setting Google Consent to:", mode); // Debug message
+  <!-- Cookie Consent by TermsFeed -->
+  <script type="text/javascript" src="https://www.termsfeed.com/public/cookie-consent/4.2.0/cookie-consent.js" charset="UTF-8"></script>
+  <script type="text/javascript" charset="UTF-8">
+    document.addEventListener('DOMContentLoaded', function () {
+      cookieconsent.run({
+        notice_banner_type: "headline",
+        consent_type: "express",
+        palette: "light",
+        language: "en",
+        page_load_consent_levels: ["strictly-necessary"],
+        notice_banner_reject_button_hide: false,
+        preferences_center_close_button_hide: false,
+        page_refresh_confirmation_buttons: false,
+        website_name: "Rhetor — GenAI-assisted Integrated MILP Modelling Environment",
 
-          gtag('consent', 'update', {
-            'ad_storage': mode,
-            'ad_user_data': mode,
-            'ad_personalization': mode,
-            'analytics_storage': mode
-          });
-          
-          // Force a dataLayer event so we can see it in GTM debug mode (optional)
-          dataLayer.push({'event': 'consent_updated', 'consent_status': mode});
-        }
-      },
-      "callbacks_force": true 
+        callbacks: {
+          // Use banner/preference callbacks (reliable) instead of scripts_specific_loaded
+          notice_banner_accept: function(level) { updateGoogleConsentFromLevels(level); },
+          notice_banner_reject: function(level) { updateGoogleConsentFromLevels(level); },
+          preferences_center_accept: function(level) { updateGoogleConsentFromLevels(level); },
+          preferences_center_reject: function(level) { updateGoogleConsentFromLevels(level); },
+          preferences_center_save: function(level) { updateGoogleConsentFromLevels(level); }
+        },
+        callbacks_force: true
+      });
     });
-  });
-</script>
-  <!-- End Cookie Consent by TermsFeed https://www.TermsFeed.com -->
+  </script>
+  <!-- End Cookie Consent by TermsFeed -->
 
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
