@@ -27,6 +27,7 @@
     // Track granted levels incrementally (because TermsFeed may emit them one-by-one)
     const __grantedLevels = new Set();
     let __lastAnalyticsMode = 'denied';
+    let __gaConfiguredAfterConsent = false;
 
     function normalizeLevels(input) {
       if (Array.isArray(input)) return input.map(String);
@@ -64,10 +65,13 @@
         ad_personalization: adsMode
       });
 
-      // Fire page_view once when analytics transitions denied -> granted
-      if (__lastAnalyticsMode !== 'granted' && analyticsMode === 'granted') {
-        gtag('event', 'page_view', { send_to: 'G-RRWWRBN3H6' });
+      // Most reliable: once analytics consent flips to granted, call config again
+      // so GA sends a hit and sets first-party cookies.
+      if (analyticsMode === 'granted' && !__gaConfiguredAfterConsent) {
+        __gaConfiguredAfterConsent = true;
+        gtag('config', 'G-RRWWRBN3H6', { send_page_view: true });
       }
+
       __lastAnalyticsMode = analyticsMode;
     }
 
@@ -82,8 +86,13 @@
     function denyAllConsent() {
       console.log('[consent] denyAllConsent');
       __grantedLevels.clear();
+      __gaConfiguredAfterConsent = false;
       applyGoogleConsentFromGrantedLevels();
     }
+
+    // TEMP debug helpers (now wired to the current functions)
+    window.__grantAnalytics = function () { grantConsentLevel(['tracking']); };
+    window.__grantAdsAndAnalytics = function () { grantConsentLevel(['tracking', 'targeting']); };
   </script>
 
   <!-- Cookie Consent by TermsFeed -->
@@ -143,36 +152,14 @@
 
   <!-- IMPORTANT: Dummy scripts to make TermsFeed emit scripts_specific_loaded -->
   <script type="text/plain" data-cookie-consent="tracking">
-    // TermsFeed will execute this after "tracking" consent is granted
     console.log('[consent] dummy tracking script executed');
   </script>
 
   <script type="text/plain" data-cookie-consent="targeting">
-    // TermsFeed will execute this after "targeting" consent is granted
     console.log('[consent] dummy targeting script executed');
   </script>
 
-  <script
-    src="https://www.termsfeed.com/public/cookie-consent/4.2.0/cookie-consent.js"
-    charset="UTF-8"
-    onload="initTermsFeedCookieConsent()"
-    onerror="console.error('[consent] Failed to load TermsFeed cookie-consent.js (blocked or network error)')">
-  </script>
   <!-- End Cookie Consent by TermsFeed -->
-
-  <script>
-    window.addEventListener('beforeunload', () => {
-      console.log('[consent] beforeunload (page is reloading/navigation)');
-    });
-
-    // TEMP debug helpers (remove once working)
-  window.__grantAnalytics = function () {
-    updateGoogleConsentFromLevels(['tracking']);
-  };
-  window.__grantAdsAndAnalytics = function () {
-    updateGoogleConsentFromLevels(['tracking', 'targeting']);
-  };
-  </script>
 
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
