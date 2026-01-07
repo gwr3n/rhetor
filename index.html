@@ -46,19 +46,30 @@
       "page_refresh_confirmation_buttons":false,
       "website_name":"Rhetor — GenAI-assisted Integrated MILP Modelling Environment",
       
-      // IMPORTANT: Ensure this callback fires the update to Google
+      // THE BRIDGE: Connects the banner to Google
       "callbacks": {
         "scripts_specific_loaded": function(level) {
-          // This maps TermsFeed categories to Google Consent Mode types
-          var gcm = {
-            'ad_storage': level.includes('targeting') ? 'granted' : 'denied',
-            'ad_user_data': level.includes('targeting') ? 'granted' : 'denied',
-            'ad_personalization': level.includes('targeting') ? 'granted' : 'denied',
-            'analytics_storage': level.includes('tracking') ? 'granted' : 'denied'
-          };
-          gtag('consent', 'update', gcm);
+          console.log("Consent Callback Fired! Level detected:", level); // Debug message
+          
+          // Check if the user accepted Tracking or Targeting
+          // (TermsFeed often uses 'tracking' for Analytics and 'targeting' for Ads)
+          var granted = (level.includes('tracking') || level.includes('targeting'));
+          
+          var mode = granted ? 'granted' : 'denied';
+          console.log("Setting Google Consent to:", mode); // Debug message
+
+          gtag('consent', 'update', {
+            'ad_storage': mode,
+            'ad_user_data': mode,
+            'ad_personalization': mode,
+            'analytics_storage': mode
+          });
+          
+          // Force a dataLayer event so we can see it in GTM debug mode (optional)
+          dataLayer.push({'event': 'consent_updated', 'consent_status': mode});
         }
-      }
+      },
+      "callbacks_force": true 
     });
   });
 </script>
