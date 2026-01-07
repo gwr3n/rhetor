@@ -1,12 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Cookie Consent by FreePrivacyPolicy.com https://www.FreePrivacyPolicy.com -->
-  <script src="//www.freeprivacypolicy.com/public/cookie-consent/4.1.0/cookie-consent.js"></script>
   <script>
-  document.addEventListener('DOMContentLoaded', function () {
-  cookieconsent.run({"notice_banner_type":"headline","consent_type":"express","palette":"light","language":"en","page_load_consent_levels":["strictly-necessary"],"notice_banner_reject_button_hide":false,"preferences_center_close_button_hide":false,"page_refresh_confirmation_buttons":false,"website_name":"Rhetor — GenAI-assisted Integrated MILP Modelling Environment"});
-  });
+    // 1. Define dataLayer and the gtag function.
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+
+    // 2. Set default consent to 'denied' as a placeholder
+    // This ensures no cookies are set until the user agrees.
+    gtag('consent', 'default', {
+      'ad_storage': 'denied',
+      'ad_user_data': 'denied',
+      'ad_personalization': 'denied',
+      'analytics_storage': 'denied',
+      'wait_for_update': 500 // Optional: Gives the banner time to load
+    });
+  
+    // 3. Set developer ID (optional, helps Google identify the CMP)
+    // FreePrivacyPolicy.com likely has their own ID, but this is standard boilerplate.
+    gtag('set', 'ads_data_redaction', true);
   </script>
   
   <!-- Google tag (gtag.js) -->
@@ -18,6 +30,16 @@
 
     gtag('config', 'G-RRWWRBN3H6');
   </script>
+
+  <!-- Cookie Consent by FreePrivacyPolicy.com https://www.FreePrivacyPolicy.com -->
+  <script src="//www.freeprivacypolicy.com/public/cookie-consent/4.1.0/cookie-consent.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+  cookieconsent.run({"notice_banner_type":"headline","consent_type":"express","palette":"light","language":"en","page_load_consent_levels":["strictly-necessary"],"notice_banner_reject_button_hide":false,"preferences_center_close_button_hide":false,"page_refresh_confirmation_buttons":false,"website_name":"Rhetor — GenAI-assisted Integrated MILP Modelling Environment"});
+  });
+  </script>
+  
+
 
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
