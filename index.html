@@ -88,8 +88,37 @@
       let initialized = false;
 
       function getCC() {
-        // Some builds expose CookieConsent instead of cookieconsent
         return window.cookieconsent || window.CookieConsent || null;
+      }
+
+      function readTermsFeedLevels(cc) {
+        // Try a few likely API shapes without assuming one exact version.
+        const getters = [
+          () => cc.getConsentLevels && cc.getConsentLevels(),
+          () => cc.getUserConsentLevel && cc.getUserConsentLevel(),
+          () => cc.getConsentLevel && cc.getConsentLevel(),
+          () => cc.getCurrentConsentLevels && cc.getCurrentConsentLevels(),
+          () => cc.consent_levels,
+          () => cc.consentLevels
+        ];
+
+        for (const fn of getters) {
+          try {
+            const val = fn();
+            if (val != null) return val;
+          } catch { /* ignore */ }
+        }
+        return null;
+      }
+
+      function syncConsentFromTermsFeed(source) {
+        const cc = getCC();
+        if (!cc) return;
+
+        const levels = readTermsFeedLevels(cc);
+        console.log(`[consent] syncConsentFromTermsFeed(${source}) levels=`, levels);
+
+        if (levels != null) updateGoogleConsentFromLevels(levels);
       }
 
       window.initTermsFeedCookieConsent = function initTermsFeedCookieConsent() {
@@ -97,12 +126,15 @@
         const cc = getCC();
 
         if (!cc || typeof cc.run !== "function") {
-          console.error("[consent] TermsFeed library not available. cookieconsent=", window.cookieconsent, "CookieConsent=", window.CookieConsent);
+          console.error("[consent] TermsFeed library not available.", { cookieconsent: window.cookieconsent, CookieConsent: window.CookieConsent });
           return;
         }
 
         initialized = true;
         console.log("[consent] TermsFeed library loaded, initializing…");
+
+        // Expose for manual inspection in DevTools if needed
+        window.__termsfeedCC = cc;
 
         cc.run({
           notice_banner_type: "headline",
@@ -116,29 +148,44 @@
           website_name: "Rhetor — GenAI-assisted Integrated MILP Modelling Environment",
 
           callbacks: {
-  notice_banner_accept: function (...args) {
-    console.log('[consent] notice_banner_accept fired args=', args);
-    try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
-  },
-  notice_banner_reject: function (...args) {
-    console.log('[consent] notice_banner_reject fired args=', args);
-    try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
-  },
-  preferences_center_accept: function (...args) {
-    console.log('[consent] preferences_center_accept fired args=', args);
-    try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
-  },
-  preferences_center_reject: function (...args) {
-    console.log('[consent] preferences_center_reject fired args=', args);
-    try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
-  },
-  preferences_center_save: function (...args) {
-    console.log('[consent] preferences_center_save fired args=', args);
-    try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
-  }
-},
+            notice_banner_accept: function (...args) {
+              console.log('[consent] notice_banner_accept fired args=', args);
+              try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
+            },
+            notice_banner_reject: function (...args) {
+              console.log('[consent] notice_banner_reject fired args=', args);
+              try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
+            },
+            preferences_center_accept: function (...args) {
+              console.log('[consent] preferences_center_accept fired args=', args);
+              try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
+            },
+            preferences_center_reject: function (...args) {
+              console.log('[consent] preferences_center_reject fired args=', args);
+              try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
+            },
+            preferences_center_save: function (...args) {
+              console.log('[consent] preferences_center_save fired args=', args);
+              try { updateGoogleConsentFromLevels(args[0]); } catch (e) { console.error(e); }
+            }
+          },
           callbacks_force: true
         });
+
+        // Initial sync (in case the user already has a stored choice)
+        setTimeout(() => syncConsentFromTermsFeed('after_run'), 0);
+
+        // Fallback: banner buttons sometimes don’t trigger callbacks—sync after any click on them.
+        document.addEventListener('click', (e) => {
+          const el = e.target && e.target.closest && e.target.closest('button, a, input');
+          if (!el) return;
+
+          const text = (el.textContent || el.value || '').trim().toLowerCase();
+          if (text === 'i agree' || text === 'accept' || text === 'allow all' || text === 'reject' || text === 'decline') {
+            // Let TermsFeed store the decision first, then read it.
+            setTimeout(() => syncConsentFromTermsFeed(`click:${text}`), 50);
+          }
+        }, true);
       };
     })();
   </script>
