@@ -32,12 +32,36 @@
   </script>
 
   <!-- Cookie Consent by TermsFeed https://www.TermsFeed.com -->
-  <script type="text/javascript" src="https://www.termsfeed.com/public/cookie-consent/4.2.0/cookie-consent.js" charset="UTF-8"></script>
-  <script type="text/javascript" charset="UTF-8">
+<script type="text/javascript" src="https://www.termsfeed.com/public/cookie-consent/4.2.0/cookie-consent.js" charset="UTF-8"></script>
+<script type="text/javascript" charset="UTF-8">
   document.addEventListener('DOMContentLoaded', function () {
-cookieconsent.run({"notice_banner_type":"headline","consent_type":"express","palette":"light","language":"en","page_load_consent_levels":["strictly-necessary"],"notice_banner_reject_button_hide":false,"preferences_center_close_button_hide":false,"page_refresh_confirmation_buttons":false,"website_name":"Rhetor — GenAI-assisted Integrated MILP Modelling Environment"});
-});
-  </script>
+    cookieconsent.run({
+      "notice_banner_type":"headline",
+      "consent_type":"express",
+      "palette":"light",
+      "language":"en",
+      "page_load_consent_levels":["strictly-necessary"],
+      "notice_banner_reject_button_hide":false,
+      "preferences_center_close_button_hide":false,
+      "page_refresh_confirmation_buttons":false,
+      "website_name":"Rhetor — GenAI-assisted Integrated MILP Modelling Environment",
+      
+      // IMPORTANT: Ensure this callback fires the update to Google
+      "callbacks": {
+        "scripts_specific_loaded": function(level) {
+          // This maps TermsFeed categories to Google Consent Mode types
+          var gcm = {
+            'ad_storage': level.includes('targeting') ? 'granted' : 'denied',
+            'ad_user_data': level.includes('targeting') ? 'granted' : 'denied',
+            'ad_personalization': level.includes('targeting') ? 'granted' : 'denied',
+            'analytics_storage': level.includes('tracking') ? 'granted' : 'denied'
+          };
+          gtag('consent', 'update', gcm);
+        }
+      }
+    });
+  });
+</script>
   <!-- End Cookie Consent by TermsFeed https://www.TermsFeed.com -->
 
   <meta charset="utf-8">
