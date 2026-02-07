@@ -60,6 +60,13 @@ This document provides a summary of the OPL (Optimization Programming Language) 
 
 ---
 
+## Maintenance Planning (Average-Cost MDP) (`maintenance`)
+**Files:** maintenance.mod, maintenance.dat
+- **Description:** Finds a stationary long-run maintenance policy for a deteriorating asset by minimizing steady-state average cost, given state-dependent action costs and probabilistic condition transitions.
+- **Features:** Occupation-measure (steady-state) decision variables, average-cost objective, state flow-balance constraints, probability normalization, action feasibility mask, row-stochastic transition checks.
+
+---
+
 ## On/Off Production with Outsourcing (`on_off_outsourcing`)
 **Files:** `on_off_outsourcing.mod`, `on_off_outsourcing.dat`
 - **Description:** Plans production over time with binary on/off decisions and optional outsourcing to satisfy demand at minimum total cost.
