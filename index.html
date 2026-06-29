@@ -257,6 +257,32 @@
     }
   }
   </script>
+
+  <!-- 1. Include Splide CSS and JS via CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
+
+  <!-- 2. Centering Styles -->
+  <style>
+    .carousel-container {
+      max-width: 550px;  /* Keeps the LinkedIn post at a standard, readable desktop width */
+      margin: 0 auto;    /* Centers the entire carousel horizontally on your webpage */
+      padding: 20px 0;
+    }
+  </style>
+  
+  <!-- 4. Initialize Splide for 1 centered post -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var splide = new Splide('#linkedin-carousel', {
+        type   : 'loop',
+        perPage: 1,      /* Forces exactly 1 post to show at a time */
+        arrows : true,     /* Shows the left/right navigation arrows */
+        pagination: true,  /* Shows the navigation dots at the bottom */
+      });
+      splide.mount();
+    });
+  </script>
 </head>
 <body>
     <div id="myCarousel" class="carousel slide" data-ride="carousel" data-interval="false">
@@ -378,6 +404,36 @@
             </iframe>
           </div>
         </div>
+
+        <h3>Social media posts</h3>     
+        <!-- 3. The Carousel HTML Structure -->
+        <div class="carousel-container">
+          <div id="linkedin-carousel" class="splide">
+            <div class="splide__track">
+              <ul class="splide__list">
+                
+                <li class="splide__slide">
+                  <iframe src="https://www.linkedin.com/posts/gwren_rhetor-integrated-modelling-environment-activity-7424771989745332225-M4Te?utm_source=share&utm_medium=member_desktop&rcm=ACoAAABHrjsBjQgPWMPRPXjjeXyjFkk9Od_LTM8" height="500" frameborder="0" allowfullscreen="" title="Post 1"></iframe>
+                </li>
+                
+                <li class="splide__slide">
+                  <iframe src="https://www.linkedin.com/posts/gwren_conversational-modelling-in-rhetor-activity-7432820056893419520-Tltb?utm_source=share&utm_medium=member_desktop&rcm=ACoAAABHrjsBjQgPWMPRPXjjeXyjFkk9Od_LTM8" height="500" frameborder="0" allowfullscreen="" title="Post 2"></iframe>
+                </li>
+
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <h3>License</h3>
+        <table class="table">
+        <tr><td>
+        <p>
+          Rhetor is released under the <a href="https://opensource.org/licenses/MIT">MIT License</a>.
+        </p>
+        </td></tr>
+        </table>
+
         <h3>Citation</h3>
         <div class="well" style="background: #f9f9f9; font-size: 0.95em;">
         <strong>Rossi, R. &amp; Prestwich, S. D. (2026).</strong><br>
