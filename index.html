@@ -236,6 +236,35 @@
     border: 0;
     display: block;
   }
+
+  /* 1. We lock the container precisely to the maximum size a desktop LinkedIn embed will actually render */
+  .carousel-container {
+    max-width: 552px;  /* This matches LinkedIn's maximum native inline feed width */
+    width: 100%;
+    margin: 0 auto;    /* Centers the carousel block on your page */
+    padding: 20px 0;
+  }
+
+  /* 2. Remove any extra padding from Splide's inner tracks to prevent unnecessary shrinking */
+  .splide__slide {
+    display: flex;
+    justify-content: center; /* Ensures the iframe sits perfectly dead-center inside the slide */
+  }
+
+  .splide__slide iframe {
+    width: 100% !important;
+    max-width: 552px !important;
+    height: 700px;
+    border: 0;
+  }
+
+  .section-heading {
+    font-size: 24px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-weight: 500;
+    line-height: 1.1;
+  }
   </style>
 
   <!-- JSON-LD: SoftwareApplication (keep your Person JSON-LD too) -->
@@ -261,29 +290,6 @@
   <!-- 1. Include Splide CSS and JS via CDN -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
-
-  <!-- 2. Centering Styles -->
-  <style>
-    /* 1. We lock the container precisely to the maximum size a desktop LinkedIn embed will actually render */
-    .carousel-container {
-      max-width: 552px;  /* This matches LinkedIn's maximum native inline feed width */
-      width: 100%;
-      margin: 0 auto;    /* Centers the carousel block on your page */
-      padding: 20px 0;
-    }
-
-    /* 2. Remove any extra padding from Splide's inner tracks to prevent unnecessary shrinking */
-    .splide__slide {
-      display: flex;
-      justify-content: center; /* Ensures the iframe sits perfectly dead-center inside the slide */
-    }
-
-    .splide__slide iframe {
-      width: 100% !important;
-      max-width: 552px !important;
-      height: 700px;
-    }
-  </style>
   
   <!-- 4. Initialize Splide for 1 centered post -->
   <script>
@@ -343,7 +349,7 @@
     </div>
 
     <div class="container">
-        <h3>Rhetor</h3>
+        <h1 class="section-heading">Rhetor</h1>
         <table class="table">
             <tr>
                 <td> 
@@ -366,7 +372,7 @@
                 </td>
             </tr>
         </table>
-        <h3>Installation & start</h3>
+        <h2 class="section-heading">Installation & start</h2>
         <table class="table">
         <tr><td>
         <p>Install:</p>
@@ -392,7 +398,7 @@
         </td></tr>
         </table>
 
-        <h3>Documentation and examples</h3>
+        <h2 class="section-heading">Documentation and examples</h2>
         <table class="table">
         <tr><td>
         <p>
@@ -419,7 +425,7 @@
           </div>
         </div>
 
-        <h3>Social media posts</h3>     
+        <h2 class="section-heading">Social media posts</h2>     
         <!-- 3. The Carousel HTML Structure -->
         <div class="carousel-container">
           <div id="linkedin-carousel" class="splide">
@@ -427,11 +433,11 @@
               <ul class="splide__list">
                 
                 <li class="splide__slide">
-                  <iframe src="https://www.linkedin.com/embed/feed/update/urn:li:share:7424771988885426176?collapsed=1" frameborder="0" allowfullscreen="" title="Post 1"></iframe>
+                  <iframe src="https://www.linkedin.com/embed/feed/update/urn:li:share:7424771988885426176?collapsed=1" allowfullscreen="" title="Post 1"></iframe>
                 </li>
                 
                 <li class="splide__slide">
-                  <iframe src="https://www.linkedin.com/embed/feed/update/urn:li:share:7421893768196296704?collapsed=1" height="600" frameborder="0" allowfullscreen="" title="Post 2"></iframe>
+                  <iframe src="https://www.linkedin.com/embed/feed/update/urn:li:share:7421893768196296704?collapsed=1" height="600" allowfullscreen="" title="Post 2"></iframe>
                 </li>
 
               </ul>
@@ -439,7 +445,7 @@
           </div>
         </div>
 
-        <h3>License</h3>
+        <h2 class="section-heading">License</h2>
         <table class="table">
         <tr><td>
         <p>
@@ -448,7 +454,7 @@
         </td></tr>
         </table>
 
-        <h3>Citation</h3>
+        <h2 class="section-heading">Citation</h2>
         <div class="well" style="background: #f9f9f9; font-size: 0.95em;">
         <strong>Rossi, R. &amp; Prestwich, S. D. (2026).</strong><br>
         <em>Grammar-Aware Literate Generative Mathematical Programming with Compiler-in-the-Loop</em>.<br>
