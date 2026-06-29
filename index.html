@@ -264,10 +264,24 @@
 
   <!-- 2. Centering Styles -->
   <style>
+    /* 1. We lock the container precisely to the maximum size a desktop LinkedIn embed will actually render */
     .carousel-container {
-      max-width: 550px;  /* Keeps the LinkedIn post at a standard, readable desktop width */
-      margin: 0 auto;    /* Centers the entire carousel horizontally on your webpage */
+      max-width: 552px;  /* This matches LinkedIn's maximum native inline feed width */
+      width: 100%;
+      margin: 0 auto;    /* Centers the carousel block on your page */
       padding: 20px 0;
+    }
+
+    /* 2. Remove any extra padding from Splide's inner tracks to prevent unnecessary shrinking */
+    .splide__slide {
+      display: flex;
+      justify-content: center; /* Ensures the iframe sits perfectly dead-center inside the slide */
+    }
+
+    .splide__slide iframe {
+      width: 100% !important;
+      max-width: 552px !important;
+      height: 700px;
     }
   </style>
   
@@ -413,11 +427,11 @@
               <ul class="splide__list">
                 
                 <li class="splide__slide">
-                  <iframe src="https://www.linkedin.com/posts/gwren_rhetor-integrated-modelling-environment-activity-7424771989745332225-M4Te?utm_source=share&utm_medium=member_desktop&rcm=ACoAAABHrjsBjQgPWMPRPXjjeXyjFkk9Od_LTM8" height="500" frameborder="0" allowfullscreen="" title="Post 1"></iframe>
+                  <iframe src="https://www.linkedin.com/embed/feed/update/urn:li:share:7424771988885426176?collapsed=1" frameborder="0" allowfullscreen="" title="Post 1"></iframe>
                 </li>
                 
                 <li class="splide__slide">
-                  <iframe src="https://www.linkedin.com/posts/gwren_conversational-modelling-in-rhetor-activity-7432820056893419520-Tltb?utm_source=share&utm_medium=member_desktop&rcm=ACoAAABHrjsBjQgPWMPRPXjjeXyjFkk9Od_LTM8" height="500" frameborder="0" allowfullscreen="" title="Post 2"></iframe>
+                  <iframe src="https://www.linkedin.com/embed/feed/update/urn:li:share:7421893768196296704?collapsed=1" height="600" frameborder="0" allowfullscreen="" title="Post 2"></iframe>
                 </li>
 
               </ul>
