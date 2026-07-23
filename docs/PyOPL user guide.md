@@ -10,15 +10,17 @@
   - [Tuple Types and Sets of Tuples](#tuple-types-and-sets-of-tuples)
   - [Tuple arrays](#tuple-arrays)
   - [Data Input (`.dat` files)](#data-input-dat-files)
+  - [Nested Tuples, Sets, and Parameter Indexing](#nested-tuples-sets-and-parameter-indexing)
 - [2. Objective Section](#2-objective-section)
 - [3. Constraints Section](#3-constraints-section)
   - [Simple Constraints](#simple-constraints)
   - [Boolean logic in constraints (and/or/not)](#boolean-logic-in-constraints-andornot)
   - [Cardinality over comparisons](#cardinality-over-comparisons)
-  - [Reified cardinality](#reified-cardinality-boolean-equality-to-a-cardinality-condition)
-  - [Implication Constraints (`=>`)](#implication-constraints-=>)
+  - [Reified cardinality (boolean equality to a cardinality condition)](#reified-cardinality-boolean-equality-to-a-cardinality-condition)
+  - [Implication Constraints (`=>`)](#implication-constraints)
   - [Conditional Expressions](#conditional-expressions)
   - [Boolean Objectives and Constraints](#boolean-objectives-and-constraints)
+  - [Boolean Expression Trees in Constraints](#boolean-expression-trees-in-constraints)
   - [Field Access](#field-access)
   - [Multi-indexed and Tuple-indexed Constraints](#multi-indexed-and-tuple-indexed-constraints)
   - [`forall` Constraints](#forall-constraints)
@@ -27,8 +29,13 @@
 - [Expressions](#expressions)
 - [Comments](#comments)
 - [Example Models](#example-models)
+  - [1) Typed set indexing and tuple-indexed variable](#1-typed-set-indexing-and-tuple-indexed-variable)
+  - [2) Tuple arrays and field access](#2-tuple-arrays-and-field-access)
+  - [3) Cardinality and reification](#3-cardinality-and-reification)
+  - [4) Implications](#4-implications)
 - [Error Handling](#error-handling)
 - [Solving a Model](#solving-a-model)
+  - [Exporting Python, LP, and MPS files](#exporting-python-lp-and-mps-files)
 - [Limitations](#limitations)
 - [GenAI Assistants](#genai-assistants)
 - [PyOPL IDE](#pyopl-ide)
@@ -303,7 +310,7 @@ PyOPL supports rich boolean and arithmetic composition beyond basic comparisons.
 - Multi-indexed, tuple-indexed constraints; tuple field access in expressions
 - Conditional (ternary) expressions with ground (non-dvar) condition
 
-### Simple Constraints:
+### Simple Constraints
 ```opl
 subject to {
     x <= 10;
@@ -372,7 +379,7 @@ Solver notes:
   - Supports linear antecedents and consequents with big-M encoding and automatic tightening.
   - Composite boolean antecedents and reified forms are supported via auxiliary binaries; prefer a single linear comparison or `bin == 1` for robustness and performance.
 
-### Conditional Expressions: 
+### Conditional Expressions
 Use conditional (ternary) expressions in objectives and constraints:
 ```opl
 minimize (x > 0) ? x : 0;
@@ -478,8 +485,13 @@ Expressions can include:
     - `o.pair.i` (nested tuple field access)
     - Supported in sum/forall, objectives, and constraints.
 - **Functions:**
-  - `sqrt(x)` (float result)
-  - `minl(a, b, c, ...)`, `maxl(a, b, c, ...)` over a list of numeric arguments (ground in parameters/computed expressions).
+  - Unary algebraic functions: `sqrt(x)`, `exp(x)`, `log(x)`, `sin(x)`, `cos(x)`, `tan(x)`, `abs(x)`, `floor(x)`, `ceil(x)`, `round(x)`.
+  - `sqrt`, `exp`, `log`, `sin`, `cos`, and `tan` return floats.
+  - `floor`, `ceil`, and `round` return ints.
+  - `abs` returns an int for integer input and a float for float input.
+  - `minl(a, b, c, ...)`, `maxl(a, b, c, ...)` over a list of numeric arguments.
+
+These functions are fully supported for ground/computed parameter expressions. Nonlinear uses involving decision variables may parse, but linear/MIP backends cannot generally solve expressions such as `exp(x)` or `sin(x)` where `x` is a decision variable.
 
 Additional notes:
 - Index expressions can be arithmetic or field accesses as long as they are integer-typed:
@@ -614,6 +626,35 @@ The `solve` function returns a dictionary with the following keys:
 
 Gurobi or SciPy/HiGHS output will be printed, including variable values and objective value if optimal.
 
+### Exporting Python, LP, and MPS files
+
+PyOPL can export the compiled Python source for a model, or lower a model to its linear problem representation and export a solver file through HiGHS. Python export is useful for inspecting or reusing the generated backend code; LP/MPS export is useful for inspecting the generated linear/MIP model or passing it to another solver tool.
+
+```python
+from pyopl.pyopl_core import OPLCompiler
+from pyopl.scipy_codegen_csc import SciPyCSCCodeGenerator
+from pyopl.linear_problem_highs import export_linear_problem
+
+model_text = open("model.mod", encoding="utf-8").read()
+data_text = open("data.dat", encoding="utf-8").read()
+
+ast, python_code, data = OPLCompiler().compile_model(model_text, data_text, solver="scipy")
+open("model.py", "w", encoding="utf-8").write(python_code)
+
+problem = SciPyCSCCodeGenerator(ast, data).build_problem()
+
+export_linear_problem(problem, "model.lp")
+export_linear_problem(problem, "model.mps")
+```
+
+The CLI provides the same export path with `--out py`, `--out lp`, or `--out mps`. Python export can be printed to stdout or written to a file; LP and MPS export require `--out-file`.
+
+```sh
+python -m pyopl solve model.mod data.dat --out py --out-file model.py
+python -m pyopl solve model.mod data.dat --out lp --out-file model.lp
+python -m pyopl solve model.mod data.dat --out mps --out-file model.mps
+```
+
 Solver specifics:
 - Gurobi (default): linear and mixed-integer models; uses indicator constraints for many logical patterns and big-M encodings with automatic tightening.
 - SciPy/HiGHS: linear programs and (if supported by your SciPy version) MIP. Integrality is passed to `linprog`; boolean/logic and implications are compiled via big-M with automatic tightening; some composite boolean antecedents for implications may be limited.
@@ -625,7 +666,7 @@ Solver specifics:
 - SciPy/HiGHS backend:
   - Composite boolean implication antecedents are supported via big‑M and auxiliaries; prefer simple forms for robustness.
   - Capabilities for larger MIP models depend on your SciPy/HiGHS version.
-- Non-linear arithmetic (e.g., variable*variable), piecewise linear, SOS, `<=>` bi-implication, global constraints, and general user-defined functions are not supported.
+- Non-linear arithmetic over decision variables (e.g., `variable*variable`, `exp(x)` for decision variable `x`), piecewise linear, SOS, `<=>` bi-implication, global constraints, and user-defined functions are not supported.
 - Big-M tightening uses declared types, simple expression spans, and collected bounds; when information is insufficient, conservative fallback M is used.
 
 ---
@@ -718,7 +759,7 @@ PyOPL provides a command-line interface that complements the IDE for scripting, 
 - Default behavior: running `python -m pyopl` with no arguments still launches the IDE.
 - Subcommands:
   - `ide`: launch the IDE; enable verbose/diagnostic logging with `--debug` (explicit to this subcommand).
-  - `solve <model.mod> [data.dat]`: compile and solve a model from the command line. Choose solver with `--solver highs|gurobi` and output format with `--out json|py` (use `--out-file` to write to a file).
+  - `solve <model.mod> [data.dat]`: compile and solve/export a model from the command line. Choose solver with `--solver highs|gurobi` and output format with `--out json|py|lp|mps` (use `--out-file` to write to a file; `lp` and `mps` require it).
   - `genai`: generative AI utilities with nested commands:
     - `list-models`: list available LLM models for a provider (openai/google/ollama).
     - `generate`: produce a draft `.mod` and `.dat` from a natural-language prompt.
@@ -731,11 +772,16 @@ Usage examples:
 # Solve a model and print JSON
 python -m pyopl solve opl_models/lot_sizing/lot_sizing.mod opl_models/lot_sizing/lot_sizing.dat --out json
 
+# Export the compiled SciPy/HiGHS model to LP or MPS
+python -m pyopl solve opl_models/lot_sizing/lot_sizing.mod opl_models/lot_sizing/lot_sizing.dat --out lp --out-file tmp/lot_sizing.lp
+python -m pyopl solve opl_models/lot_sizing/lot_sizing.mod opl_models/lot_sizing/lot_sizing.dat --out mps --out-file tmp/lot_sizing.mps
+
 # Generate insight (GenAI) and save to Markdown
 python -m pyopl genai insight "$(cat opl_models/lot_sizing/lot_sizing.txt)" --provider openai --llm-model gpt-5.4 --out-file tmp/lot_insight.md
 ```
 
 Notes:
+- LP/MPS export uses PyOPL's SciPy/HiGHS linear-problem lowering and HiGHS model writer. It requires `highspy` to be installed.
 - The `genai insight` pipeline uses the configured LLM provider and model to produce a model and data draft (saved in `tmp/`), solves it with the selected solver, then asks the assistant to produce a lay-language summary and suggested next steps in Markdown. Environment credentials (e.g., `OPENAI_API_KEY`) must be set for remote providers.
 - CLI unit tests are included in the repository (`test/test_cli.py`) and mock GenAI calls to keep tests deterministic.
 
@@ -743,13 +789,15 @@ Notes:
 
 ## PyOPL MCP
 
-PyOPL MCP exposes core PyOPL compiler/solver functionality as MCP tools so external clients (IDEs, editors, automation) can call compile/solve operations over stdio-based MCP servers.
+PyOPL MCP exposes core PyOPL compiler/solver functionality as MCP tools so external clients (IDEs, editors, automation) can call compile, solve, export, and compare operations over stdio-based MCP servers.
 
-- **Purpose**: Provide programmatic access to compilation, solving, and Python code export for OPL models (useful for editor integrations and remote toolchains).
-- **Key tools**:
-  - **read_pyopl_grammar**: Return the bundled grammar text.
-  - **solve_files / solve_strings**: Compile and solve a model from file paths or in-memory strings.
-  - **export_py_files / export_py_strings**: Compile model/data to generated Python source and return it as a string.
+- **Purpose**: Provide programmatic access to compilation, solving, Python code export, and model equivalence comparison for OPL models using in-memory model/data strings.
+- **Exposed tools**:
+  - **read_pyopl_grammar_tool**: Return the bundled grammar text.
+  - **solve_strings_tool**: Compile and solve a model from `model_text` and optional `data_text`.
+  - **export_py_strings_tool**: Compile `model_text` and optional `data_text` to generated Python source and return it as a string.
+  - **compare_model_strings_tool**: Compare two OPL models from strings using the same MILP equivalence engine as the IDE's Compare models workflow. Returns `status`, `equivalent`, `level`, `reason`, `proof_steps`, and `counterexample`.
+- **Not exposed as MCP tools**: File-path helpers such as `solve_files_tool` and `export_py_files_tool` are retained in the Python module for trusted local/internal use, but are not registered as MCP tools by default for security reasons.
 - **Solver mapping**: Default solver alias `highs` → SciPy/HiGHS; `gurobi` → Gurobi. See the tool `solver` parameter for selection.
 - **Quick start (VS Code MCP example - .vscode/mcp.json)**:
 ```json
@@ -768,7 +816,7 @@ PyOPL MCP exposes core PyOPL compiler/solver functionality as MCP tools so exter
 python -m pyopl.pyopl_mcp
 ```
 - **Files**: Implementation and tool list in pyopl_mcp.py.
-- **Notes**: Errors from the compiler/solver are propagated to the caller; generated Python code is returned (not written) so the client can persist it as desired.
+- **Notes**: Errors from the compiler/solver/comparison engine are propagated to the caller; generated Python code is returned (not written) so the client can persist it as desired.
 
 ---
 
