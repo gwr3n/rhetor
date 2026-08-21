@@ -35,6 +35,7 @@
   - [4) Implications](#4-implications)
 - [Error Handling](#error-handling)
 - [Solving a Model](#solving-a-model)
+  - [Solver settings](#solver-settings)
   - [Exporting Python, LP, and MPS files](#exporting-python-lp-and-mps-files)
 - [Limitations](#limitations)
 - [GenAI Assistants](#genai-assistants)
@@ -617,6 +618,34 @@ results = solve('model.mod', 'data.dat', solver='scipy')   # Use SciPy/HiGHS (LP
 - `solver='gurobi'` (default): Uses Gurobi for linear and mixed-integer models (requires Gurobi license).
 - `solver='scipy'`: Uses SciPy's HiGHS solver for linear programming (LP) and, if supported by your SciPy version, mixed-integer programming (MIP, i.e., integer and boolean variables) models. Integrality is passed to `linprog` if present, but full MIP support depends on your SciPy installation.
 
+### Solver settings
+
+Pass backend-native solver parameters with the optional `solver_settings` dictionary. Gurobi keys are passed to `Model.setParam`; SciPy/HiGHS keys are merged into the `options` dictionary passed to `scipy.optimize.linprog`.
+
+```python
+from pyopl import solve
+
+gurobi_results = solve(
+  "model.mod",
+  "data.dat",
+  solver="gurobi",
+  solver_settings={"TimeLimit": 60.0, "MIPGap": 0.001, "Threads": 4},
+)
+
+highs_results = solve(
+  "model.mod",
+  "data.dat",
+  solver="scipy",
+  solver_settings={"time_limit": 60.0, "mip_rel_gap": 0.001, "presolve": True},
+)
+```
+
+The repository provides `gurobi.json` and `highs.json` templates containing the default settings exposed by the supported solver APIs. A JSON `null` value means “retain the backend default” and is not passed to the solver. When `solver_settings` is omitted, PyOPL uses its normal default solver configuration.
+
+Settings are backend-specific. Invalid names or values are reported by Gurobi or SciPy/HiGHS; PyOPL does not translate parameter names between solvers. Do not store credentials or secrets in solver settings files.
+
+Backend time limits such as HiGHS `time_limit` and Gurobi `TimeLimit` apply to optimization after PyOPL has parsed, materialized, and compiled the OPL model. They are not whole-process limits. Large generic models with substantial indexed data may therefore spend significant time compiling before the solver timer starts. PyOPL reports the compilation and optimization phases separately in solver output.
+
 The `solve` function returns a dictionary with the following keys:
 - `status`: Optimization status (e.g., 'OPTIMAL', 'INFEASIBLE')
 - `solution`: Variable values (if optimal)
@@ -750,6 +779,8 @@ python -m pyopl
 
 This will open the PyOPL IDE window. You can open `.mod` (model) and `.dat` (data) files, edit them, and run your model directly from the interface. You can select either Gurobi or SciPy/HiGHS as the solver from the IDE's menu bar. The IDE provides syntax highlighting, error diagnostics, and a modern UI for rapid prototyping and learning.
 
+When the IDE solves a model, it looks in the current working directory for `gurobi.json` when Gurobi is selected or `highs.json` when SciPy/HiGHS is selected. If the corresponding file exists, the IDE loads its top-level JSON object and passes it as the solver settings. If the file is absent, default solver settings apply. Invalid JSON or a top-level value other than an object stops the solve and reports an error.
+
 ---
 
 ## PyOPL CLI
@@ -759,8 +790,8 @@ PyOPL provides a command-line interface that complements the IDE for scripting, 
 - Default behavior: running `python -m pyopl` with no arguments still launches the IDE.
 - Subcommands:
   - `ide`: launch the IDE; enable verbose/diagnostic logging with `--debug` (explicit to this subcommand).
-  - `solve <model.mod> [data.dat]`: compile and solve/export a model from the command line. Choose solver with `--solver highs|gurobi` and output format with `--out json|py|lp|mps` (use `--out-file` to write to a file; `lp` and `mps` require it).
-  - `compare <left.mod> <right.mod>`: compare two models for MILP equivalence. Use `--left-data <left.dat>` and `--right-data <right.dat>` when either model needs data, and `--out-file <path>` to write the comparison JSON to a file.
+  - `solve <model.mod> [data.dat]`: compile and solve/export a model from the command line. Choose solver with `--solver highs|gurobi` and output format with `--out json|py|lp|mps` (use `--out-file` to write to a file; `lp` and `mps` require it). For a solve, pass a settings object from a file with `--solver-settings <file.json>`.
+  - `compare <left.mod> <right.mod>`: compare two models for MILP equivalence. Select `--strategy abstract|concrete` (default: `abstract`). Abstract comparison first compares model schemas and can use optional `--left-data` and `--right-data` to ground finite indexed schemas; concrete comparison compares the instantiated matrix models. Use `--out-file <path>` to write the comparison JSON to a file.
   - `genai`: generative AI utilities with nested commands:
     - `list-models`: list available LLM models for a provider (openai/google/ollama).
     - `generate`: produce a draft `.mod` and `.dat` from a natural-language prompt.
@@ -773,12 +804,21 @@ Usage examples:
 # Solve a model and print JSON
 python -m pyopl solve opl_models/lot_sizing/lot_sizing.mod opl_models/lot_sizing/lot_sizing.dat --out json
 
+# Solve with backend-native HiGHS settings from a JSON file
+python -m pyopl solve model.mod data.dat --solver highs --solver-settings highs.json --out json
+
+# Solve with backend-native Gurobi settings from a JSON file
+python -m pyopl solve model.mod data.dat --solver gurobi --solver-settings gurobi.json --out json
+
 # Export the compiled SciPy/HiGHS model to LP or MPS
 python -m pyopl solve opl_models/lot_sizing/lot_sizing.mod opl_models/lot_sizing/lot_sizing.dat --out lp --out-file tmp/lot_sizing.lp
 python -m pyopl solve opl_models/lot_sizing/lot_sizing.mod opl_models/lot_sizing/lot_sizing.dat --out mps --out-file tmp/lot_sizing.mps
 
-# Compare two models for MILP equivalence
-python -m pyopl compare left.mod right.mod --left-data left.dat --right-data right.dat --out-file tmp/comparison.json
+# Compare two concrete model instances
+python -m pyopl compare left.mod right.mod --strategy concrete --left-data left.dat --right-data right.dat --out-file tmp/comparison.json
+
+# Compare parameterized model schemas without instantiating data
+python -m pyopl compare left.mod right.mod --strategy abstract
 
 # Generate insight (GenAI) and save to Markdown
 python -m pyopl genai insight "$(cat opl_models/lot_sizing/lot_sizing.txt)" --provider openai --llm-model gpt-5.4 --out-file tmp/lot_insight.md
@@ -786,7 +826,7 @@ python -m pyopl genai insight "$(cat opl_models/lot_sizing/lot_sizing.txt)" --pr
 
 Notes:
 - LP/MPS export uses PyOPL's SciPy/HiGHS linear-problem lowering and HiGHS model writer. It requires `highspy` to be installed.
-- `compare` returns JSON with `status`, `equivalent`, `level`, `reason`, `proof_steps`, and `counterexample`, using the same MILP equivalence engine exposed by the IDE and MCP tools.
+- `compare` returns JSON with `strategy`, `status`, `equivalent`, `level`, `reason`, `proof_steps`, and `counterexample`. The IDE's Compare models dialog exposes the same concrete/abstract strategy selector. Concrete comparison first tries normalized graph isomorphism, then falls back to projected MILP comparison when models share binary decision variables but use different continuous auxiliary formulations. A successful fallback reports level `projected_milp_proven`.
 - The `genai insight` pipeline uses the configured LLM provider and model to produce a model and data draft (saved in `tmp/`), solves it with the selected solver, then asks the assistant to produce a lay-language summary and suggested next steps in Markdown. Environment credentials (e.g., `OPENAI_API_KEY`) must be set for remote providers.
 - CLI unit tests are included in the repository (`test/test_cli.py`) and mock GenAI calls to keep tests deterministic.
 
@@ -801,9 +841,10 @@ PyOPL MCP exposes core PyOPL compiler/solver functionality as MCP tools so exter
   - **read_pyopl_grammar_tool**: Return the bundled grammar text.
   - **solve_strings_tool**: Compile and solve a model from `model_text` and optional `data_text`.
   - **export_py_strings_tool**: Compile `model_text` and optional `data_text` to generated Python source and return it as a string.
-  - **compare_model_strings_tool**: Compare two OPL models from strings using the same MILP equivalence engine as the IDE's Compare models workflow. Returns `status`, `equivalent`, `level`, `reason`, `proof_steps`, and `counterexample`.
+  - **compare_model_strings_tool**: Compare two OPL models from strings using `strategy="concrete"` or `strategy="abstract"`, matching the IDE's Compare models workflow. Returns `strategy`, `status`, `equivalent`, `level`, `reason`, `proof_steps`, and `counterexample`.
 - **Not exposed as MCP tools**: File-path helpers such as `solve_files_tool` and `export_py_files_tool` are retained in the Python module for trusted local/internal use, but are not registered as MCP tools by default for security reasons.
 - **Solver mapping**: Default solver alias `highs` → SciPy/HiGHS; `gurobi` → Gurobi. See the tool `solver` parameter for selection.
+- **Solver settings**: `solve_strings_tool` accepts an optional `solver_settings` JSON object containing backend-native parameter names and values. For example, use `{"time_limit": 60.0}` with `solver="highs"` or `{"TimeLimit": 60.0}` with `solver="gurobi"`. Unlike the IDE, the MCP tool does not discover settings files; the client supplies the object directly.
 - **Quick start (VS Code MCP example - .vscode/mcp.json)**:
 ```json
 {
