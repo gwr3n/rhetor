@@ -197,10 +197,132 @@
   <meta name="twitter:description" content="An Integrated Modelling Environment for mixed-integer linear programming, with optional GenAI-assisted modelling features.">
   <meta name="twitter:image" content="https://gwr3n.github.io/rhetor/logo.png">
 
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
   <style>
+  body {
+    margin: 0;
+    color: #333;
+    background-color: #fff;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .container {
+    --bs-gutter-x: 30px;
+  }
+
+  @media (min-width: 576px) and (max-width: 767.98px) {
+    .container { max-width: none; }
+  }
+
+  @media (min-width: 768px) {
+    .container { max-width: 750px; }
+  }
+
+  @media (min-width: 992px) {
+    .container { max-width: 970px; }
+  }
+
+  @media (min-width: 1200px) {
+    .container { max-width: 1170px; }
+  }
+
+  p { margin: 0 0 10px; }
+
+  ul { margin-top: 0; margin-bottom: 10px; }
+
+  blockquote {
+    margin: 0 0 20px;
+    padding: 10px 20px;
+    border-left: 5px solid #eee;
+  }
+
+  #termsfeed-com---nb {
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  #termsfeed-com---nb .cc-nb-main-container { padding: 24px; }
+  #termsfeed-com---nb .cc-nb-text { font-size: 14px; line-height: 20px; }
+
+  pre {
+    display: block;
+    margin: 0 0 10px;
+    padding: 9.5px;
+    overflow-wrap: break-word;
+    color: #333;
+    background-color: #f5f5f5;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.42857143;
+  }
+
+  code { color: #c7254e; }
+  pre code { color: inherit; }
+
+  .content-block {
+    margin-bottom: 20px;
+    padding: 8px;
+    border-top: 1px solid #ddd;
+  }
+
+  .content-block.has-empty-row::after {
+    display: block;
+    height: 9px;
+    margin: 8px -8px -8px;
+    border-top: 1px solid #ddd;
+    content: "";
+  }
+
+  .intro-logo {
+    float: left;
+    width: 100px;
+    height: auto;
+    padding: 0 10px 10px 0;
+  }
+
+  .badge-link {
+    display: inline-block;
+    text-decoration: none;
+  }
+
+  .badge-link img {
+    display: block;
+  }
+
+  .html-validator-badge {
+    display: inline-block;
+    text-decoration: none;
+  }
+
+  .html-validator-badge img {
+    display: block;
+    width: 32px;
+    height: 32px;
+  }
+
+  .citation-panel {
+    min-height: 20px;
+    margin-bottom: 20px;
+    padding: 19px;
+    background-color: #f9f9f9;
+    border: 1px solid #e3e3e3;
+    border-radius: 4px;
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);
+    font-size: 0.95em;
+    line-height: 1.42857143;
+  }
+
+  .citation-panel pre {
+    margin-top: 10px;
+    background: #f5f5f5;
+    border: none;
+    font-size: 0.9em;
+  }
+
   .yt-996x724 {
     width: 100%;
     max-width: 996px;
@@ -292,34 +414,29 @@
 
     <div class="container">
         <h1 class="section-heading">Rhetor</h1>
-        <table class="table">
-            <tr>
-                <td> 
-                    <img src="logo.png" alt="Rhetor Logo" class="img-responsive pull-left" style="width: 100px; padding: 0px 10px 10px 0px"> Rhetor is an Integrated Modelling Environment for modelling and solving mixed-integer linear programming problems. Rhetor supports a subset of the Optimisation Programming Language (OPL) syntax and it is built on <a href="https://github.com/gwr3n/pyopl"><code>pyopl</code></a>, a Python library for parsing and solving OPL-like mathematical programming models using Gurobi or Scipy (Highs). Rhetor integrates GenAI features to support and automate the modelling process.<br><br>
-                    <a href="https://pypistats.org/packages/rhetor">
+        <div class="content-block">
+              <img src="logo.png" alt="Rhetor Logo" class="intro-logo"> Rhetor is an Integrated Modelling Environment for modelling and solving mixed-integer linear programming problems. Rhetor supports a subset of the Optimisation Programming Language (OPL) syntax and it is built on <a href="https://github.com/gwr3n/pyopl"><code>pyopl</code></a>, a Python library for parsing and solving OPL-like mathematical programming models using Gurobi or Scipy (Highs). Rhetor integrates GenAI features to support and automate the modelling process.<br><br>
+                    <a class="badge-link" href="https://pypistats.org/packages/rhetor">
                       <img alt="PyPI - Downloads" src="https://img.shields.io/pypi/dm/rhetor">
                     </a>
-                    <a href="https://www.python.org/">
+                    <a class="badge-link" href="https://www.python.org/">
                       <img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/rhetor">
                     </a>
-                    <a href="https://pypi.org/project/rhetor/">
+                    <a class="badge-link" href="https://pypi.org/project/rhetor/">
                       <img alt="PyPI - Version" src="https://img.shields.io/pypi/v/rhetor">
                     </a>
-                    <a href="https://pypi.org/project/rhetor/">
+                    <a class="badge-link" href="https://pypi.org/project/rhetor/">
                       <img alt="PyPI - Wheel" src="https://img.shields.io/pypi/wheel/rhetor">
                     </a>
-                    <a href="https://arxiv.org/abs/2601.17670">
+                    <a class="badge-link" href="https://arxiv.org/abs/2601.17670">
                       <img alt="arXiv" src="https://img.shields.io/badge/arXiv-2601.17670-B31B1B.svg">
                     </a>
-                </td>
-            </tr>
-        </table>
+            </div>
         <p style="text-align: center;">
           <img src="sudoku.gif" alt="Sudoku" width="100%" loading="lazy">
         </p>
         <h2 class="section-heading">Installation & start</h2>
-        <table class="table">
-        <tr><td>
+        <div class="content-block has-empty-row">
         <p>Install:</p>
         <pre><code>pip install rhetor</code></pre>
         <p>Start Rhetor:</p>
@@ -341,14 +458,10 @@
         </a>
         </p>
         <p>or you can use the <a href="https://github.com/gwr3n/pyopl/tree/main/agent">Rhetor Skills</a> and <a href="https://github.com/gwr3n/pyopl/blob/main/docs/PyOPL%20user%20guide.md#pyopl-mcp">PyOPL MCP</a> to integrate Rhetor with your favorite agentic workflow (e.g. <a href="https://www.youtube.com/watch?v=xGoWXmk1IW8&t=5s">Github Copilot</a>).</p>
-        </td></tr>
-        <tr><td>
-        </td></tr>
-        </table>
+        </div>
 
         <h2 class="section-heading">Documentation and examples</h2>
-        <table class="table">
-        <tr><td>
+        <div class="content-block">
         <p>
           Rhetor embeds GenAI features that support the modelling process: 
           features can be explored within the system in a conversational fashion. 
@@ -359,8 +472,7 @@
         <li><a href="https://github.com/gwr3n/rhetor/blob/main/docs/PyOPL%20examples%20overview.md">Gallery of examples</a></li>
         <li><a href="https://github.com/gwr3n/rhetor/tree/main/opl_models">Sample PyOPL models</a></li>
         </ul>
-        </td></tr>
-        </table>
+        </div>
         <div class="container text-center">
           <div class="yt-996x724">
             <iframe
@@ -374,13 +486,11 @@
         </div>
 
         <h2 class="section-heading">Social media posts</h2>     
-        <table class="table">
-        <tr><td>
+        <div class="content-block">
         <p>
           A selection of LinkedIn posts about Rhetor is available below.
         </p>
-        </td></tr>
-        </table>
+        </div>
         <!-- 3. The Carousel HTML Structure -->
         <div class="carousel-container">
           <div id="linkedin-carousel" class="splide">
@@ -392,29 +502,24 @@
                 </li>
                 
                 <li class="splide__slide">
-                  <iframe src="https://www.linkedin.com/embed/feed/update/urn:li:share:7421893768196296704?collapsed=1" height="600" allowfullscreen="" title="Post 2"></iframe>
-                </li>
-
               </ul>
             </div>
           </div>
         </div>
 
         <h2 class="section-heading">License</h2>
-        <table class="table">
-        <tr><td>
+        <div class="content-block">
         <p>
           Rhetor is released under the <a href="https://opensource.org/licenses/MIT">MIT License</a>.
         </p>
-        </td></tr>
-        </table>
+        </div>
 
         <h2 class="section-heading">Citation</h2>
-        <div class="well" style="background: #f9f9f9; font-size: 0.95em;">
+        <div class="citation-panel">
           <strong>Rossi, R. &amp; Prestwich, S. D. (2026).</strong><br>
           <em>Grammar-Aware Literate Generative Mathematical Programming with Compiler-in-the-Loop</em>.<br>
           <a href="https://arxiv.org/abs/2601.17670" target="_blank" rel="noopener">arXiv:2601.17670 [cs.PL]</a>.<br>
-          <pre style="background: #f5f5f5; border: none; margin-top: 10px; font-size: 0.9em;">@misc{rossi2026grammarawareliterategenerativemathematical,
+          <pre>@misc{rossi2026grammarawareliterategenerativemathematical,
             title={Grammar-Aware Literate Generative Mathematical Programming with Compiler-in-the-Loop}, 
             author={Roberto Rossi and Steven D. Prestwich},
             year={2026},
@@ -427,9 +532,9 @@
     </div>
 
     <div class="container" style="text-align: center;">
-        <a href="https://validator.w3.org/check?uri=https%3A%2F%2Fgwr3n.github.io/rhetor"><img
-          			   src="https://www.w3.org/Icons/valid-xhtml10"
-          			   alt="Valid XHTML 1.0!" height="31" width="88"></a>
+        <a class="html-validator-badge" href="https://validator.w3.org/nu/?doc=https%3A%2F%2Fgwr3n.github.io%2Frhetor%2F" rel="nofollow" title="Check this page with the W3C Nu HTML Checker">
+          <img src="favicon/HTML5_Badge_32.png" alt="HTML5">
+        </a>
         <footer style="text-align: center; margin-top: 40px; font-size: 0.9em; color: #888;">
             &copy; 2025 <a href="https://gwr3n.github.io/">Roberto Rossi</a>. All rights reserved.<br><br>
             <!-- Below is the link that users can use to open Preferences Center to change their preferences. Do not modify the ID parameter. Place it where appropriate, style it as needed. -->
