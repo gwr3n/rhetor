@@ -400,16 +400,25 @@ Use the implication operator to model logical relationships:
 subject to {
   (x > 0) => (y == 1);
   (a + b >= z) => (u - v <= 5);
-  ((p == 1 && q == 1) == true) => (r <= 10);  // composite antecedent (Gurobi); SciPy: see limits
+  ((p == 1 && q == 1) == true) => (r <= 10);
+  (p == 1) => ((q == 1) => (r <= 10));
 }
 ```
-Solver notes:
+Implication is right-associative, so `A => B => C` means `A => (B => C)`. Both backends normalize nested implication as `!A || B`, and every comparison auxiliary is linked in both directions to its predicate.
+
+Numerical semantics:
+- Boolean and integer-affine predicates are represented exactly. Strict integer comparisons use a unit separation: `x > y` becomes `x >= y + 1`.
+- Continuous strict predicates use `STRICT_COMPARISON_EPSILON` from `pyopl.numerical_policy`. The margin is intentionally larger than solver feasibility tolerances.
+- Continuous values between a predicate boundary and its epsilon-separated complement form an infeasible dead zone. This is the standard MILP approximation needed because an open strict-inequality feasible set cannot be represented exactly by closed linear constraints.
+
+Backend notes:
 - Gurobi backend:
-  - Uses indicator constraints automatically for patterns like `(bin == 1) => (linear constraint)`, and specialized contrapositive forms like `(linear >= c) => (bin == 1)`.
-  - Falls back to a big-M encoding with a binary flag when an indicator is not applicable; big-M is tightened using cheap bound analysis.
+  - Uses complementary indicator constraints to reify antecedents and a native indicator to activate the consequent.
+  - Generic implication handling does not use an arbitrary fallback big-M.
 - SciPy/HiGHS backend:
-  - Supports linear antecedents and consequents with big-M encoding and automatic tightening.
-  - Composite boolean antecedents and reified forms are supported via auxiliary binaries; prefer a single linear comparison or `bin == 1` for robustness and performance.
+  - Uses sparse linear big-M rows with automatically inferred bounds.
+  - Rejects affine implication forms without finite variable bounds instead of generating an invalid or arbitrary formulation.
+  - Supports composite and nested Boolean antecedents and consequents through auxiliary binaries.
 
 ### Conditional Expressions
 Use conditional (ternary) expressions in objectives and constraints:
@@ -432,8 +441,8 @@ subject to {
 Boolean objectives are interpreted as integer (1 for true, 0 for false).
 
 ### Boolean Expression Trees in Constraints
-- Gurobi: complex boolean formulas (and/or/not) are compiled to auxiliary binaries with tight linking and can be combined with implications.
-- SciPy: supports boolean comparisons and compositions; compiles to linear constraints with auxiliary binaries. Some complex antecedent forms under implications may be restricted (see above).
+- Gurobi: complex boolean formulas (`and`, `or`, `not`, and nested implication) are compiled to exactly linked auxiliary binaries and native indicators.
+- SciPy: supports the same Boolean compositions and compiles them to sparse linear constraints with auxiliary binaries, provided required affine bounds are finite.
 
 ### Field Access
 Use dot notation to access tuple fields in constraints (including nested fields):
@@ -692,6 +701,41 @@ The `solve` function returns a dictionary with the following keys:
 
 Gurobi or SciPy/HiGHS output will be printed, including variable values and objective value if optimal.
 
+### Batch solving
+
+Use `batch_solve` to solve multiple data instances from a ZIP archive. Each archive folder is an independent batch
+and must contain exactly one `.mod` file and at least one `.dat` file. Folders may be nested, so one archive can
+contain several model batches:
+
+```text
+batch.zip
+  production/model.mod
+  production/january.dat
+  production/february.dat
+  experiments/scenario/model.mod
+  experiments/scenario/baseline.dat
+```
+
+Every `.dat` file is solved independently against the `.mod` file in its folder. Model folders and data files are
+processed in case-insensitive path order. A failed instance is recorded with status `ERROR` and processing continues
+for the remaining instances. Files that are not part of a valid model folder are ignored. Common macOS and Windows
+filesystem metadata files are ignored as well.
+
+The optional `highs.json` or `gurobi.json` file supplies backend-native solver settings for the selected solver. An
+invalid configuration for the selected solver stops the batch with an error; a configuration for the other solver is
+ignored. The function writes `<archive>.json` and `<archive>.md` beside the input ZIP. The JSON report contains an
+`instances` list with `model`, `data`, `solver`, status, objective, statistics, and any error message. It also contains
+`models`, listing every processed model; the legacy singular `model` field is retained when the archive has only one
+model.
+
+```python
+from pyopl.batch_solve import batch_solve
+
+report = batch_solve("batch.zip", solver="highs")
+for instance in report["instances"]:
+    print(instance["model"], instance["data"], instance["status"])
+```
+
 ### Exporting Python, LP, and MPS files
 
 PyOPL can export the compiled Python source for a model, or lower a model to its linear problem representation and export a solver file through HiGHS. Python export is useful for inspecting or reusing the generated backend code; LP/MPS export is useful for inspecting the generated linear/MIP model or passing it to another solver tool.
@@ -765,6 +809,12 @@ To enable GenAI features, set at least one of the following environment variable
 - ```GEMINI_API_KEY``` — for Google Gemini
 - or install and run ollama locally.
 
+### Saving reviewed exemplars
+
+In the IDE, **File > Save Exemplar...** uses the selected GenAI provider and model to distill the current session, model, and data into a concise problem description. Three retrieved exemplar triplets are supplied as style references when available.
+
+The proposed description opens in an editable review tab. The Model and Data tabs provide syntax-highlighted, read-only previews of the exact content that will be saved. Nothing is written until **Accept & Save** is selected; cancelling, closing the window, or pressing Escape discards the draft. The saved `.md` contains the reviewed problem description rather than the raw session transcript.
+
 Typical usage (Python):
 ```python
 from pyopl.pyopl_generative import generative_solve
@@ -788,6 +838,25 @@ data_file = "/content/gen_pyopl_data.dat"
 assessment = generative_solve(prompt, model_file, data_file, "gpt-5", llm_provider="openai")
 print("Assessment of alignment:", assessment)
 ```
+
+Feedback on an existing model/data pair uses one shared implementation across all strategies. If feedback proposes revised model or data content, PyOPL combines partial revisions with the unchanged companion file, compiles the complete candidate, checks alignment with the request and original files, and attempts bounded repair before returning the revision. Revisions that still fail validation are withheld.
+
+```python
+from pyopl import generative_feedback
+
+result = generative_feedback(
+  "Add the missing capacity constraint without changing the objective.",
+  model_file,
+  data_file,
+  validation_iterations=3,
+)
+
+print(result["feedback"])
+if "revised_model" in result:
+  print(result["revised_model"])
+```
+
+Validation is enabled by default. Advanced callers can set `validate_revisions=False` to receive unvalidated proposals or `alignment_check=False` to require compilation only.
 
 Notes and tips:
 - These assistants generate text; compile and solve using the usual API (`solve(...)`) and fix any semantic errors the compiler reports.
@@ -840,7 +909,7 @@ subject to {
 }
 ```
 
-Click the triangle beside a section header to collapse or expand it. The header remains visible. A section ends before the next `§` header, at the end of the file, or immediately before the closing brace of the block containing the header. Nested braces are respected, and the containing block's final `}` remains visible. Ordinary comments and inline markers such as `x >= 0; // § Bounds` do not create sections.
+Click the triangle beside a section header to collapse or expand it. The header remains visible. A section ends before the next `§` header, at the end of the file, or immediately before the closing brace of the block containing the header. Trailing empty lines remain expanded. Nested braces are respected, and the containing block's final `}` remains visible. Ordinary comments and inline markers such as `x >= 0; // § Bounds` do not create sections.
 
 Section headers are ordinary comments and do not change model semantics. When an editor contains no collapsible sections, the gutter contracts to line-number-only width.
 
@@ -854,6 +923,8 @@ PyOPL provides a command-line interface that complements the IDE for scripting, 
 - Subcommands:
   - `ide`: launch the IDE; enable verbose/diagnostic logging with `--debug` (explicit to this subcommand).
   - `solve <model.mod> [data.dat]`: compile and solve/export a model from the command line. Choose solver with `--solver highs|gurobi` and output format with `--out json|py|lp|mps` (use `--out-file` to write to a file; `lp` and `mps` require it). For a solve, pass a settings object from a file with `--solver-settings <file.json>`.
+  - `batch-solve <archive.zip>`: solve every folder containing exactly one `.mod` file and one or more `.dat` files, including nested folders, with `--solver highs|gurobi` (default: `highs`). Each data file is an independent instance; failed instances are recorded while other instances continue. Optional `highs.json` or `gurobi.json` files provide solver settings. Writes `.json` and `.md` reports beside the archive.
+  - `batch-compare <left.zip> <right.zip>`: compare data instances with matching filenames across two batch archives using `--strategy abstract|concrete` (default: `abstract`). Each archive must contain exactly one model. Writes paired `.json` and `.md` reports beside the left archive.
   - `compare <left.mod> <right.mod>`: compare two models for MILP equivalence. Select `--strategy abstract|concrete` (default: `abstract`). Abstract comparison first compares model schemas and can use optional `--left-data` and `--right-data` to ground finite indexed schemas; concrete comparison compares the instantiated matrix models. Use `--out-file <path>` to write the comparison JSON to a file.
   - `genai`: generative AI utilities with nested commands:
     - `list-models`: list available LLM models for a provider (openai/google/ollama).
@@ -877,6 +948,19 @@ python -m pyopl solve model.mod data.dat --solver gurobi --solver-settings gurob
 python -m pyopl solve opl_models/lot_sizing/lot_sizing.mod opl_models/lot_sizing/lot_sizing.dat --out lp --out-file tmp/lot_sizing.lp
 python -m pyopl solve opl_models/lot_sizing/lot_sizing.mod opl_models/lot_sizing/lot_sizing.dat --out mps --out-file tmp/lot_sizing.mps
 
+# Solve all data instances in a batch archive
+python -m pyopl batch-solve knapsack.zip --solver highs
+python -m pyopl batch-solve knapsack.zip --solver gurobi
+
+# A batch archive may contain multiple nested model folders
+# (for example, production/model.mod + production/*.dat and
+# experiments/scenario/model.mod + experiments/scenario/*.dat)
+python -m pyopl batch-solve models.zip --solver highs
+
+# Compare matching data instances in two archives
+python -m pyopl batch-compare baseline.zip candidate.zip --strategy abstract
+python -m pyopl batch-compare baseline.zip candidate.zip --strategy concrete
+
 # Compare two concrete model instances
 python -m pyopl compare left.mod right.mod --strategy concrete --left-data left.dat --right-data right.dat --out-file tmp/comparison.json
 
@@ -884,7 +968,7 @@ python -m pyopl compare left.mod right.mod --strategy concrete --left-data left.
 python -m pyopl compare left.mod right.mod --strategy abstract
 
 # Generate insight (GenAI) and save to Markdown
-python -m pyopl genai insight "$(cat opl_models/lot_sizing/lot_sizing.txt)" --provider openai --llm-model gpt-5.4 --out-file tmp/lot_insight.md
+python -m pyopl genai insight "$(cat opl_models/lot_sizing/lot_sizing.md)" --provider openai --llm-model gpt-5.4 --out-file tmp/lot_insight.md
 ```
 
 Notes:
